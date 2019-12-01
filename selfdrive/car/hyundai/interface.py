@@ -132,7 +132,7 @@ class CarInterface(CarInterfaceBase):
       ret.steerRatio = 13.9             # per Hyundai PDF http://resources.mynewsdesk.com/image/upload/t_attachment/t29mrnj5qhmaghpegang.pdf
       tire_stiffness_factor = 0.410     # 106% guess, "stock" 0.385
       ret.lateralTuning.pid.kiBP, ret.lateralTuning.pid.kpBP = [[0.], [0.]]   # Breakpoint is in MPS
-      ret.lateralTuning.pid.kpV, ret.lateralTuning.pid.kiV = [[0.25], [0.05]] # default 0.25 and 0.05
+      ret.lateralTuning.pid.kpV, ret.lateralTuning.pid.kiV = [[0.23], [0.05]] # default 0.25 and 0.05
       ret.minSteerSpeed = 32 * CV.MPH_TO_MS
     elif candidate == CAR.KIA_FORTE:
       ret.lateralTuning.pid.kf = 0.00005

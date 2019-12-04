@@ -28,6 +28,11 @@ static void hyundai_rx_hook(CAN_FIFOMailBox_TypeDef *to_push) {
     update_sample(&hyundai_torque_driver, torque_driver_new);
   }
 
+  // check if we have a MDPS giraffe
+  if ((bus != 0) && ((addr == 593) || (addr == 897))) {
+    HKG_MDPS_CAN = bus;
+  }
+
   // check if stock camera ECU is still online
   if ((bus == 0) && (addr == 832)) {
     hyundai_camera_detected = 1;
@@ -149,9 +154,9 @@ static int hyundai_tx_hook(CAN_FIFOMailBox_TypeDef *to_send) {
   return tx;
 }
 
-static int hyundai_fwd_hook(int bus_num, CAN_FIFOMailBox_TypeDef *to_fwd) {
-
+static int hyundai_fwd_hook(int bus_num, CAN_FIFOMailBox_TypeDef *to_fwd, int (*fwd_bus)[]) {
   int bus_fwd = -1;
+  
   // forward cam to ccan and viceversa, except lkas cmd
   if (!hyundai_camera_detected) {
     if (bus_num == 0) {
@@ -171,6 +176,23 @@ static int hyundai_fwd_hook(int bus_num, CAN_FIFOMailBox_TypeDef *to_fwd) {
       }
     }
   }
+  
+  if (HKG_MDPS_CAN != -1) {
+    int a_index = 0;
+    
+    if (bus_num == HKG_MDPS_CAN) {
+      if (bus_num != 0) {
+        (*fwd_bus)[a_index++] = 0;
+      }
+      if (bus_num != 2) {
+        (*fwd_bus)[a_index++] = 2;
+      }
+    }
+    else {
+      (*fwd_bus)[a_index++] = HKG_MDPS_CAN;
+    }
+  }
+  
   return bus_fwd;
 }
 

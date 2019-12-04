@@ -353,8 +353,9 @@ void can_rx(uint8_t can_number) {
     // modify RDTR for our API
     to_push.RDTR = (to_push.RDTR & 0xFFFF000F) | (bus_number << 4);
 
+    int fwd_bus[] = {-1, -1, -1};
     // forwarding (panda only)
-    int bus_fwd_num = (can_forwarding[bus_number] != -1) ? can_forwarding[bus_number] : safety_fwd_hook(bus_number, &to_push);
+    int bus_fwd_num = (can_forwarding[bus_number] != -1) ? can_forwarding[bus_number] : safety_fwd_hook(bus_number, &to_push, &fwd_bus);
     if (bus_fwd_num != -1) {
       CAN_FIFOMailBox_TypeDef to_send;
       to_send.RIR = to_push.RIR | 1; // TXRQ
@@ -362,6 +363,17 @@ void can_rx(uint8_t can_number) {
       to_send.RDLR = to_push.RDLR;
       to_send.RDHR = to_push.RDHR;
       can_send(&to_send, bus_fwd_num);
+    }
+    // Array bus forwarding
+    for (int i; i < 3; i++) {
+      if (fwd_bus[i] != -1 && fwd_bus[i] != bus_fwd_num) {
+        CAN_FIFOMailBox_TypeDef to_send;
+        to_send.RIR = to_push.RIR | 1; // TXRQ
+        to_send.RDTR = to_push.RDTR;
+        to_send.RDLR = to_push.RDLR;
+        to_send.RDHR = to_push.RDHR;
+        can_send(&to_send, fwd_bus[i]);
+      }
     }
 
     safety_rx_hook(&to_push);

@@ -5,6 +5,7 @@ from selfdrive.config import Conversions as CV
 from common.kalman.simple_kalman import KF1D
 
 GearShifter = car.CarState.GearShifter
+MDPS_CAN = 1
 
 def get_can_parser(CP):
 
@@ -54,16 +55,16 @@ def get_can_parser(CP):
 
     ("CF_Lvr_GearInf", "LVR11", 0),        #Transmission Gear (0 = N or P, 1-8 = Fwd, 14 = Rev)
 
-    ("CR_Mdps_DrvTq", "MDPS11", 0),
+    ("CR_Mdps_DrvTq", "MDPS11", MDPS_CAN),
 
-    ("CR_Mdps_StrColTq", "MDPS12", 0),
-    ("CF_Mdps_ToiActive", "MDPS12", 0),
-    ("CF_Mdps_ToiUnavail", "MDPS12", 0),
-    ("CF_Mdps_FailStat", "MDPS12", 0),
-    ("CR_Mdps_OutTq", "MDPS12", 0),
+    ("CR_Mdps_StrColTq", "MDPS12", MDPS_CAN),
+    ("CF_Mdps_ToiActive", "MDPS12", MDPS_CAN),
+    ("CF_Mdps_ToiUnavail", "MDPS12", MDPS_CAN),
+    ("CF_Mdps_FailStat", "MDPS12", MDPS_CAN),
+    ("CR_Mdps_OutTq", "MDPS12", MDPS_CAN),
 
-    ("SAS_Angle", "SAS11", 0),
-    ("SAS_Speed", "SAS11", 0),
+    ("SAS_Angle", "SAS11", MDPS_CAN),
+    ("SAS_Speed", "SAS11", MDPS_CAN),
 
   ]
 

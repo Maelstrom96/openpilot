@@ -398,7 +398,7 @@ void can_rx(uint8_t can_number) {
       can_send(&to_send, bus_fwd_num);
     }
     // Array bus forwarding
-    for (int i; i < 3; i++) {
+    for (int i = 0; i < 3; i++) {
       if (fwd_bus[i] != -1 && fwd_bus[i] != bus_fwd_num) {
         CAN_FIFOMailBox_TypeDef to_send;
         to_send.RIR = to_push.RIR | 1; // TXRQ

@@ -1,3 +1,4 @@
+from cereal import car
 from selfdrive.car import dbc_dict
 
 VisualAlert = car.CarControl.HUDControl.VisualAlert

@@ -107,7 +107,7 @@ class CarController():
     # Also send CAN to MDPS Harness
     can_sends.append(create_lkas11(self.packer, self.car_fingerprint, apply_steer, steer_req, self.lkas11_cnt,
                                    enabled, CS.lkas11, hud_alert, lane_visible, left_lane_depart, right_lane_depart,
-                                   keep_stock=(not self.camera_disconnected), MDPS_CAN))
+                                   (not self.camera_disconnected), MDPS_CAN))
 
     #if pcm_cancel_cmd:
       #self.clu11_cnt = frame % 0x10

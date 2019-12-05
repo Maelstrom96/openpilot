@@ -10,6 +10,9 @@ import time
 import random
 import argparse
 
+from hexdump import hexdump
+from itertools import permutations
+
 sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), ".."))
 from panda import Panda
 
@@ -43,7 +46,7 @@ def run_test(sleep_duration):
 
   black_panda = None
   other_panda = None
-
+  
   if type0 == "\x03" and type1 != "\x03":
     black_panda = pandas[0]
     other_panda = pandas[1]
@@ -83,15 +86,15 @@ def run_test(sleep_duration):
       assert False
 
     counter += 1
-    print("Number of cycles:", counter, "Open errors:", open_errors, "Closed errors:", closed_errors, "Content errors:", content_errors)
+    print("Number of cycles:", counter, "Open errors:", open_errors, "Closed errors:", closed_errors, "Content errors:", content_errors)	
 
 def test_buses(black_panda, other_panda, test_obj):
   global content_errors
   send_bus, obd, recv_buses = test_obj
-
+    
   black_panda.send_heartbeat()
   other_panda.send_heartbeat()
-
+    
   # Set OBD on send panda
   other_panda.set_gmlan(True if obd else None)
 
@@ -100,7 +103,7 @@ def test_buses(black_panda, other_panda, test_obj):
 
   for recv_bus in recv_buses:
     black_panda.can_clear(recv_bus)
-
+    
   black_panda.can_recv()
   other_panda.can_recv()
 
@@ -111,7 +114,7 @@ def test_buses(black_panda, other_panda, test_obj):
   time.sleep(0.05)
 
   # check for receive
-  _ = other_panda.can_recv()  # can echo
+  cans_echo = other_panda.can_recv()
   cans_loop = black_panda.can_recv()
 
   loop_buses = []
@@ -119,7 +122,7 @@ def test_buses(black_panda, other_panda, test_obj):
     if (loop[0] != at) or (loop[2] != st):
       content_errors += 1
     loop_buses.append(loop[3])
-
+    
   # test loop buses
   recv_buses.sort()
   loop_buses.sort()

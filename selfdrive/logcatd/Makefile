@@ -14,14 +14,12 @@ WARN_FLAGS = -Werror=implicit-function-declaration \
 
 CFLAGS = -std=gnu11 -g -fPIC -O2 $(WARN_FLAGS)
 CXXFLAGS = -std=c++11 -g -fPIC -O2 $(WARN_FLAGS)
-
-MESSAGING_FLAGS = -I$(BASEDIR)/selfdrive/messaging
-MESSAGING_LIBS = $(BASEDIR)/selfdrive/messaging/messaging.a
+ZMQ_LIBS = -l:libczmq.a -l:libzmq.a
 
 ifeq ($(ARCH),aarch64)
 CFLAGS += -mcpu=cortex-a57
 CXXFLAGS += -mcpu=cortex-a57
-EXTRA_LIBS += -lgnustl_shared
+ZMQ_LIBS += -lgnustl_shared
 endif
 
 
@@ -35,11 +33,11 @@ OBJS = logcatd.o \
 
 DEPS := $(OBJS:.o=.d)
 
-logcatd: $(OBJS) $(MESSAGING_LIBS)
+logcatd: $(OBJS)
 	@echo "[ LINK ] $@"
 	$(CXX) -fPIC -o '$@' $^ \
             $(CEREAL_LIBS) \
-            $(EXTRA_LIBS) \
+            $(ZMQ_LIBS) \
             -llog
 
 %.o: %.cc
@@ -47,7 +45,7 @@ logcatd: $(OBJS) $(MESSAGING_LIBS)
 	$(CXX) $(CXXFLAGS) \
            -I$(PHONELIBS)/android_system_core/include \
            $(CEREAL_CXXFLAGS) \
-           $(MESSAGING_FLAGS) \
+           $(ZMQ_FLAGS) \
            -I../ \
            -I../../ \
            -c -o '$@' '$<'

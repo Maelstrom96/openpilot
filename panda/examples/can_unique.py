@@ -13,8 +13,10 @@
 # 0,344,c000c00000000000
 
 
+import binascii
 import csv
 import sys
+from panda import Panda
 
 class Message():
   """Details about a specific message ID."""

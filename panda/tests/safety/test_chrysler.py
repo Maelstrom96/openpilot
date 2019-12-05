@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
+import csv
+import glob
 import unittest
 import numpy as np
-import libpandasafety_py  # pylint: disable=import-error
+import libpandasafety_py
 from panda import Panda
 
 MAX_RATE_UP = 3

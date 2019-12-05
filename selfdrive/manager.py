@@ -1,6 +1,5 @@
 #!/usr/bin/env python3.7
 import os
-import time
 import sys
 import fcntl
 import errno
@@ -59,6 +58,7 @@ from common.params import Params
 import cereal
 ThermalStatus = cereal.log.ThermalData.ThermalStatus
 
+from selfdrive.services import service_list
 from selfdrive.swaglog import cloudlog
 import selfdrive.messaging as messaging
 from selfdrive.registration import register
@@ -86,13 +86,13 @@ managed_processes = {
   "ui": ("selfdrive/ui", ["./start.py"]),
   "calibrationd": "selfdrive.locationd.calibrationd",
   "paramsd": ("selfdrive/locationd", ["./paramsd"]),
-  "visiond": ("selfdrive/visiond", ["./start.py"]),
+  "visiond": ("selfdrive/visiond", ["./visiond"]),
   "sensord": ("selfdrive/sensord", ["./start_sensord.py"]),
   "gpsd": ("selfdrive/sensord", ["./start_gpsd.py"]),
   "updated": "selfdrive.updated",
 }
 daemon_processes = {
-  "manage_athenad": ("selfdrive.athena.manage_athenad", "AthenadPid"),
+  "athenad": "selfdrive.athena.athenad",
 }
 android_packages = ("ai.comma.plus.offroad", "ai.comma.plus.frame")
 
@@ -152,8 +152,9 @@ def launcher(proc):
     # rename the process
     setproctitle(proc)
 
-    # create now context since we forked
-    messaging.context = messaging.Context()
+    # terminate the zmq context since we forked
+    import zmq
+    zmq.Context.instance().term()
 
     # exec the process
     mod.main()
@@ -189,7 +190,8 @@ def start_managed_process(name):
   running[name].start()
 
 def start_daemon_process(name, params):
-  proc, pid_param = daemon_processes[name]
+  proc = daemon_processes[name]
+  pid_param = name.capitalize() + 'Pid'
   pid = params.get(pid_param)
 
   if pid is not None:
@@ -240,14 +242,8 @@ def kill_managed_process(name):
     else:
       running[name].terminate()
 
-    # Process().join(timeout) will hang due to a python 3 bug: https://bugs.python.org/issue28382
-    # We have to poll the exitcode instead
-    # running[name].join(5.0)
-
-    t = time.time()
-    while time.time() - t < 5 and running[name].exitcode is None:
-      time.sleep(0.001)
-
+    # give it 5 seconds to die
+    running[name].join(5.0)
     if running[name].exitcode is None:
       if name in unkillable_processes:
         cloudlog.critical("unkillable process %s failed to exit! rebooting in 15 if it doesn't die" % name)
@@ -322,7 +318,7 @@ def system(cmd):
 
 def manager_thread():
   # now loop
-  thermal_sock = messaging.sub_sock('thermal')
+  thermal_sock = messaging.sub_sock(service_list['thermal'].port)
 
   cloudlog.info("manager start")
   cloudlog.info({"environ": os.environ})
@@ -377,8 +373,8 @@ def manager_thread():
     running_list = ["   running %s %s" % (p, running[p]) for p in running]
     cloudlog.debug('\n'.join(running_list))
 
-    # Exit main loop when uninstall is needed
-    if params.get("DoUninstall", encoding='utf8') == "1":
+    # is this still needed?
+    if params.get("DoUninstall") == "1":
       break
 
 def get_installed_apks():
@@ -555,7 +551,7 @@ def main():
   finally:
     cleanup_all_processes(None, None)
 
-  if params.get("DoUninstall", encoding='utf8') == "1":
+  if params.get("DoUninstall") == "1":
     uninstall()
 
 if __name__ == "__main__":

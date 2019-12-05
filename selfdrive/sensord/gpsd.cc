@@ -17,9 +17,10 @@
 #include <hardware/gps.h>
 #include <utils/Timers.h>
 
+#include <zmq.h>
+
 #include <capnp/serialize.h>
 
-#include "messaging.hpp"
 #include "common/timing.h"
 #include "common/swaglog.h"
 
@@ -33,9 +34,10 @@ namespace {
 
 pthread_t clock_thread_handle;
 
-Context *gps_context;
-PubSocket *gps_publisher;
-PubSocket *gps_location_publisher;
+// zmq output
+void *gps_context;
+void *gps_publisher;
+void *gps_location_publisher;
 
 const GpsInterface* gGpsInterface = NULL;
 const AGpsInterface* gAGpsInterface = NULL;
@@ -61,7 +63,7 @@ void nmea_callback(GpsUtcTime timestamp, const char* nmea, int length) {
   auto words = capnp::messageToFlatArray(msg);
   auto bytes = words.asBytes();
   // printf("gps send %d\n", bytes.size());
-  gps_publisher->send((char*)bytes.begin(), bytes.size());
+  zmq_send(gps_publisher, bytes.begin(), bytes.size(), 0);
 }
 
 void location_callback(GpsLocation* location) {
@@ -85,7 +87,7 @@ void location_callback(GpsLocation* location) {
 
   auto words = capnp::messageToFlatArray(msg);
   auto bytes = words.asBytes();
-  gps_location_publisher->send((char*)bytes.begin(), bytes.size());
+  zmq_send(gps_location_publisher, bytes.begin(), bytes.size(), 0);
 }
 
 pthread_t create_thread_callback(const char* name, void (*start)(void *), void* arg) {
@@ -161,9 +163,12 @@ void gps_init() {
                                    GPS_POSITION_RECURRENCE_PERIODIC,
                                    100, 0, 0);
 
-  gps_context = Context::create();
-  gps_publisher = PubSocket::create(gps_context, "gpsNMEA");
-  gps_location_publisher = PubSocket::create(gps_context, "gpsLocation");
+  gps_context = zmq_ctx_new();
+  gps_publisher = zmq_socket(gps_context, ZMQ_PUB);
+  zmq_bind(gps_publisher, "tcp://*:8004");
+
+  gps_location_publisher = zmq_socket(gps_context, ZMQ_PUB);
+  zmq_bind(gps_location_publisher, "tcp://*:8026");
 }
 
 void gps_destroy() {
@@ -182,7 +187,8 @@ int64_t arm_cntpct() {
 void* clock_thread(void* args) {
   int err = 0;
 
-  PubSocket* clock_publisher = PubSocket::create(gps_context, "clocks");
+  void* clock_publisher = zmq_socket(gps_context, ZMQ_PUB);
+  zmq_bind(clock_publisher, "tcp://*:8034");
 
   int timerfd = timerfd_create(CLOCK_BOOTTIME, 0);
   assert(timerfd >= 0);
@@ -222,11 +228,11 @@ void* clock_thread(void* args) {
 
     auto words = capnp::messageToFlatArray(msg);
     auto bytes = words.asBytes();
-    clock_publisher->send((char*)bytes.begin(), bytes.size());
+    zmq_send(clock_publisher, bytes.begin(), bytes.size(), 0);
   }
 
   close(timerfd);
-  delete clock_publisher;
+  zmq_close(clock_publisher);
 
   return NULL;
 }

@@ -20,7 +20,7 @@ if __name__ == "__main__":
         res = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT)
         print(res)
         found_bad_language = True
-      except subprocess.CalledProcessError:
+      except subprocess.CalledProcessError as e:
         pass
   if found_bad_language:
     sys.exit("Failed: found bad language")

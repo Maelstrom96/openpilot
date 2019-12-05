@@ -11,6 +11,9 @@ import time
 import random
 import argparse
 
+from hexdump import hexdump
+from itertools import permutations
+
 sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), ".."))
 from panda import Panda
 
@@ -115,10 +118,10 @@ def test_buses(black_panda, other_panda, direction, test_array, sleep_duration):
 
     # check for receive
     if direction:
-      _ = black_panda.can_recv()  # can echo
+      cans_echo = black_panda.can_recv()
       cans_loop = other_panda.can_recv()
     else:
-      _ = other_panda.can_recv()  # can echo
+      cans_echo = other_panda.can_recv()
       cans_loop = black_panda.can_recv()
 
     loop_buses = []

@@ -33,7 +33,6 @@ const board *current_board;
 #include "drivers/clock.h"
 #include "drivers/llgpio.h"
 #include "drivers/adc.h"
-#include "drivers/pwm.h"
 
 #include "board.h"
 

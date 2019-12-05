@@ -80,7 +80,7 @@ def get_vin(logcan, sendcan, bus, query_time=1.):
 
   # 1s max of VIN query time
   while frame < query_time * 100:
-    a = messaging.get_one_can(logcan)
+    a = messaging.recv_one(logcan)
 
     for can in a.can:
       vin_query.check_response(can)
@@ -92,6 +92,7 @@ def get_vin(logcan, sendcan, bus, query_time=1.):
 
 
 if __name__ == "__main__":
-  logcan = messaging.sub_sock('can')
-  sendcan = messaging.pub_sock('sendcan')
+  from selfdrive.services import service_list
+  logcan = messaging.sub_sock(service_list['can'].port)
+  sendcan = messaging.pub_sock(service_list['sendcan'].port)
   print(get_vin(logcan, sendcan, 0))

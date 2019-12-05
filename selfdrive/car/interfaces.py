@@ -14,10 +14,6 @@ class CarInterfaceBase():
     return 1.
 
   @staticmethod
-  def compute_gb(accel, speed):
-    raise NotImplementedError
-
-  @staticmethod
   def get_params(candidate, fingerprint=gen_empty_fingerprint(), vin="", has_relay=False):
     raise NotImplementedError
 

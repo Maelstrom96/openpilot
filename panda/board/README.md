@@ -4,7 +4,6 @@ Dependencies
 **Mac**
 
 ```
-xcode-select --install
 ./get_sdk_mac.sh
 ```
 

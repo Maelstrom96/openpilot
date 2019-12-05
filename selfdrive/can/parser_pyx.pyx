@@ -1,16 +1,7 @@
 # distutils: language = c++
 # cython: c_string_encoding=ascii, language_level=3
 
-from libcpp.string cimport string
-from libcpp.vector cimport vector
-from libcpp cimport bool
-from libcpp.unordered_set cimport unordered_set
-from libc.stdint cimport uint32_t, uint64_t, uint16_t
-from libcpp.map cimport map
-
-from common cimport CANParser as cpp_CANParser
-from common cimport SignalParseOptions, MessageParseOptions, dbc_lookup, SignalValue, DBC
-
+from posix.dlfcn cimport dlopen, dlsym, RTLD_LAZY
 
 from libcpp cimport bool
 import os
@@ -18,30 +9,25 @@ import numbers
 
 cdef int CAN_INVALID_CNT = 5
 
-
 cdef class CANParser:
-  cdef:
-    cpp_CANParser *can
-    const DBC *dbc
-    map[string, uint32_t] msg_name_to_address
-    map[uint32_t, string] address_to_msg_name
-    vector[SignalValue] can_values
-    bool test_mode_enabled
+  def __init__(self, dbc_name, signals, checks=None, bus=0, sendcan=False, tcp_addr=b"", timeout=-1):
+    self.test_mode_enabled = False
+    can_dir = os.path.dirname(os.path.abspath(__file__))
+    libdbc_fn = os.path.join(can_dir, "libdbc.so")
+    libdbc_fn = str(libdbc_fn).encode('utf8')
 
-  cdef public:
-    string dbc_name
-    dict vl
-    dict ts
-    bool can_valid
-    int can_invalid_cnt
-
-  def __init__(self, dbc_name, signals, checks=None, bus=0):
+    cdef void *libdbc = dlopen(libdbc_fn, RTLD_LAZY)
+    self.can_init_with_vectors = <can_init_with_vectors_func>dlsym(libdbc, 'can_init_with_vectors')
+    self.dbc_lookup = <dbc_lookup_func>dlsym(libdbc, 'dbc_lookup')
+    self.can_update = <can_update_func>dlsym(libdbc, 'can_update')
+    self.can_update_string = <can_update_string_func>dlsym(libdbc, 'can_update_string')
+    self.can_query_latest_vector = <can_query_latest_vector_func>dlsym(libdbc, 'can_query_latest_vector')
     if checks is None:
       checks = []
 
     self.can_valid = True
     self.dbc_name = dbc_name
-    self.dbc = dbc_lookup(dbc_name)
+    self.dbc = self.dbc_lookup(dbc_name)
     self.vl = {}
     self.ts = {}
 
@@ -92,15 +78,15 @@ cdef class CANParser:
       mpo.check_frequency = freq
       message_options_v.push_back(mpo)
 
-    self.can = new cpp_CANParser(bus, dbc_name, message_options_v, signal_options_v)
+    self.can = self.can_init_with_vectors(bus, dbc_name, message_options_v, signal_options_v, sendcan, tcp_addr, timeout)
     self.update_vl()
 
   cdef unordered_set[uint32_t] update_vl(self):
     cdef string sig_name
     cdef unordered_set[uint32_t] updated_val
+    cdef bool valid = False
 
-    can_values = self.can.query_latest()
-    valid = self.can.can_valid
+    self.can_query_latest_vector(self.can, &valid, self.can_values)
 
     # Update invalid flag
     self.can_invalid_cnt += 1
@@ -109,7 +95,7 @@ cdef class CANParser:
     self.can_valid = self.can_invalid_cnt < CAN_INVALID_CNT
 
 
-    for cv in can_values:
+    for cv in self.can_values:
       # Cast char * directly to unicde
       name = <unicode>self.address_to_msg_name[cv.address].c_str()
       cv_name = <unicode>cv.name
@@ -125,7 +111,7 @@ cdef class CANParser:
     return updated_val
 
   def update_string(self, dat):
-    self.can.update_string(dat)
+    self.can_update_string(self.can, dat, len(dat))
     return self.update_vl()
 
   def update_strings(self, strings):
@@ -136,3 +122,8 @@ cdef class CANParser:
       updated_vals.update(updated_val)
 
     return updated_vals
+
+  def update(self, uint64_t sec, bool wait):
+    r = (self.can_update(self.can, sec, wait) >= 0)
+    updated_val = self.update_vl()
+    return r, updated_val

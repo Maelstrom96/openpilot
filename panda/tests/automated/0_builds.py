@@ -1,3 +1,4 @@
+import os
 from panda import build_st
 
 def test_build_panda():

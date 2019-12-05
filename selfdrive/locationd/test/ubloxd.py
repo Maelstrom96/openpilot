@@ -10,6 +10,7 @@ import sys
 from cereal import log
 from common import realtime
 import selfdrive.messaging as messaging
+from selfdrive.services import service_list
 from selfdrive.locationd.test.ephemeris import EphemerisData, GET_FIELD_U
 
 panda = os.getenv("PANDA") is not None   # panda directly connected
@@ -269,8 +270,8 @@ def main(gctx=None):
     nav_frame_buffer[0][i] = {}
 
 
-  gpsLocationExternal = messaging.pub_sock('gpsLocationExternal')
-  ubloxGnss = messaging.pub_sock('ubloxGnss')
+  gpsLocationExternal = messaging.pub_sock(service_list['gpsLocationExternal'].port)
+  ubloxGnss = messaging.pub_sock(service_list['ubloxGnss'].port)
 
   dev = init_reader()
   while True:

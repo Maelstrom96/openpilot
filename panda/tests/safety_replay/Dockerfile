@@ -14,10 +14,8 @@ RUN pyenv install 3.7.3
 RUN pyenv global 3.7.3
 RUN pyenv rehash
 
-COPY requirements.txt /tmp/
-RUN pip install -r /tmp/requirements.txt
-COPY tests/safety_replay/requirements_extra.txt requirements_extra.txt
-RUN pip install -r requirements_extra.txt
+COPY tests/safety_replay/requirements.txt requirements.txt
+RUN pip install -r requirements.txt
 COPY tests/safety_replay/install_capnp.sh install_capnp.sh
 RUN ./install_capnp.sh
 

@@ -17,9 +17,10 @@
 #include <hardware/sensors.h>
 #include <utils/Timers.h>
 
+#include <czmq.h>
+
 #include <capnp/serialize.h>
 
-#include "messaging.hpp"
 #include "common/timing.h"
 #include "common/swaglog.h"
 
@@ -52,10 +53,6 @@ void sigpipe_handler(int sig) {
 
 void sensor_loop() {
   LOG("*** sensor loop");
-
-  Context * c = Context::create();
-  PubSocket * sensor_events_sock = PubSocket::create(c, "sensorEvents");
-
   struct sensors_poll_device_t* device;
   struct sensors_module_t* module;
 
@@ -102,6 +99,9 @@ void sensor_loop() {
   static const size_t numEvents = 16;
   sensors_event_t buffer[numEvents];
 
+  auto sensor_events_sock = zsock_new_pub("@tcp://*:8003");
+  assert(sensor_events_sock);
+  auto sensor_events_sock_raw = zsock_resolve(sensor_events_sock);
 
   while (!do_exit) {
     int n = device->poll(device, buffer, numEvents);
@@ -212,12 +212,12 @@ void sensor_loop() {
 
     auto words = capnp::messageToFlatArray(msg);
     auto bytes = words.asBytes();
-    sensor_events_sock->send((char*)bytes.begin(), bytes.size());
-  }
+    zmq_send(sensor_events_sock_raw, bytes.begin(), bytes.size(), ZMQ_DONTWAIT);
 
-  delete sensor_events_sock;
-  delete c;
+  }
+  LOG("bye");
 }
+
 }
 
 int main(int argc, char *argv[]) {

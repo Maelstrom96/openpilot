@@ -1,23 +1,5 @@
 from selfdrive.car import dbc_dict
 
-VisualAlert = car.CarControl.HUDControl.VisualAlert
-
-def get_hud_alerts(visual_alert):
-  if visual_alert == VisualAlert.steerRequired:
-    return 5
-  else:
-    return 0
-
-# Steer torque limits
-
-class SteerLimitParams:
-  STEER_MAX = 255   # 409 is the max, 255 is stock
-  STEER_DELTA_UP = 3
-  STEER_DELTA_DOWN = 7
-  STEER_DRIVER_ALLOWANCE = 50
-  STEER_DRIVER_MULTIPLIER = 2
-  STEER_DRIVER_FACTOR = 1
-
 class CAR:
   ELANTRA = "HYUNDAI ELANTRA LIMITED ULTIMATE 2017"
   GENESIS = "HYUNDAI GENESIS 2018"
@@ -28,7 +10,6 @@ class CAR:
   SANTA_FE = "HYUNDAI SANTA FE LIMITED 2019"
   SANTA_FE_1 = "HYUNDAI SANTA FE has no scc"
   KONA = "HYUNDAI KONA 2019"
-  KONA_EV = "HYUNDAI KONA EV 2019"
   GENESIS_G90 = "GENESIS G90 2017"
   GENESIS_G80 = "GENESIS G80 2017"
   IONIQ = "HYUNDAI IONIQ HYBRID 2017 PREMIUM"
@@ -94,9 +75,6 @@ FINGERPRINTS = {
   {
     127: 8, 304: 8, 320: 8, 339: 8, 352: 8, 356: 4, 544: 8, 593: 8, 688: 5, 881: 8, 882: 8, 897: 8, 902: 8, 903: 8, 916: 8, 1040: 8, 1042: 8, 1078: 4, 1136: 8, 1151: 6, 1168: 7, 1173: 8, 1183: 8, 1225: 8, 1265: 4, 1280: 1, 1287: 4, 1291: 8, 1292: 8, 1294: 8, 1312: 8, 1322: 8, 1345: 8, 1348: 8, 1355: 8, 1363: 8, 1369: 8, 1407: 8, 1426: 8, 1427: 6, 1429: 8, 1430: 8, 1456: 4, 1470: 8, 1473: 8, 1507: 8, 1535: 8
   }],
-  CAR.KONA_EV: [{
-    127: 8, 304: 8, 320: 8, 339: 8, 352: 8, 356: 4, 544: 8, 549: 8, 593: 8, 688: 5, 832: 8, 881: 8, 882: 8, 897: 8, 902: 8, 903: 8, 905: 8, 909: 8, 916: 8, 1040: 8, 1042: 8, 1056: 8, 1057: 8, 1078: 4, 1136: 8, 1151: 6, 1168: 7, 1173: 8, 1183: 8, 1186: 2, 1191: 2, 1225: 8, 1265: 4, 1280: 1, 1287: 4, 1290: 8, 1291: 8, 1292: 8, 1294: 8, 1307: 8, 1312: 8, 1322: 8, 1342: 6, 1345: 8, 1348: 8, 1355: 8, 1363: 8, 1369: 8, 1378: 4, 1407: 8, 1419: 8, 1426: 8, 1427: 6, 1429: 8, 1430: 8, 1456: 4, 1470: 8, 1473: 8, 1507: 8, 1535: 8, 2000: 8, 2004: 8, 2008: 8, 2012: 8
-  }],
   CAR.KIA_FORTE: [{
     67: 8, 127: 8, 304: 8, 320: 8, 339: 8, 356: 4, 544: 8, 593: 8, 608: 8, 688: 5, 809: 8, 832: 8, 854: 7, 870: 7, 871: 8, 872: 8, 897: 8, 902: 8, 903: 8, 909: 8, 916: 8, 1040: 8, 1042: 8, 1078: 4, 1107: 5, 1136: 8, 1156: 8, 1170: 8, 1173: 8, 1191: 2, 1225: 8, 1265: 4, 1280: 4, 1287: 4, 1292: 8, 1294: 8, 1312: 8, 1322: 8, 1342: 6, 1345: 8, 1348: 8, 1363: 8, 1369: 8, 1384: 8, 1394: 8, 1407: 8, 1427: 6, 1456: 4, 1470: 8
   }],
@@ -132,7 +110,7 @@ CHECKSUM = {
 FEATURES = {
   "use_cluster_gears": [CAR.ELANTRA, CAR.KONA, CAR.ELANTRA_GT_I30],     # Use Cluster for Gear Selection, rather than Transmission
   "use_tcu_gears": [CAR.KIA_OPTIMA],                                    # Use TCU Message for Gear Selection
-  "use_new_gears": [CAR.KIA_OPTIMA_H, CAR.KONA_EV, CAR.IONIQ_EV_LTD],   # Use TCU Message for Gear Selection
+  "use_new_gears": [CAR.KIA_OPTIMA_H,CAR.IONIQ_EV_LTD],                 # Use TCU Message for Gear Selection
   "non_scc": [CAR.IONIQ, CAR.KONA, CAR.KIA_FORTE, CAR.SANTA_FE_1],      # Car without SCC
 }
 
@@ -150,7 +128,6 @@ DBC = {
   CAR.IONIQ: dbc_dict('hyundai_kia_generic', None),
   CAR.IONIQ_EV_LTD: dbc_dict('hyundai_kia_generic', None),
   CAR.KONA: dbc_dict('hyundai_kia_generic', None),
-  CAR.KONA_EV: dbc_dict('hyundai_kia_generic', None),
   CAR.KIA_FORTE: dbc_dict('hyundai_kia_generic', None),
   CAR.ELANTRA_GT_I30: dbc_dict('hyundai_kia_generic', None),
 }

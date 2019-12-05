@@ -1,3 +1,5 @@
+
+import os
 import sys
 import time
 from panda import Panda
@@ -178,6 +180,6 @@ def test_gmlan_bad_toggle(p):
 @test_all_pandas
 @panda_connect_and_init
 def test_serial_debug(p):
-  _ = p.serial_read(Panda.SERIAL_DEBUG)  # junk
+  junk = p.serial_read(Panda.SERIAL_DEBUG)
   p.call_control_api(0xc0)
   assert(p.serial_read(Panda.SERIAL_DEBUG).startswith(b"can "))

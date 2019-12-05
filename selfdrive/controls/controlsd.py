@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 import os
 import gc
+import json
 import capnp
+import zmq
 from cereal import car, log
 from common.numpy_fast import clip
 from common.realtime import sec_since_boot, set_realtime_priority, Ratekeeper, DT_CTRL
@@ -9,8 +11,9 @@ from common.profiler import Profiler
 from common.params import Params, put_nonblocking
 import selfdrive.messaging as messaging
 from selfdrive.config import Conversions as CV
+from selfdrive.services import service_list
 from selfdrive.boardd.boardd import can_list_to_can_capnp
-from selfdrive.car.car_helpers import get_car, get_startup_alert
+from selfdrive.car.car_helpers import get_car, get_startup_alert, get_one_can
 from selfdrive.controls.lib.lane_planner import CAMERA_OFFSET
 from selfdrive.controls.lib.drive_helpers import get_events, \
                                                  create_event, \
@@ -52,12 +55,12 @@ def events_to_bytes(events):
   return ret
 
 
-def data_sample(CI, CC, sm, can_sock, cal_status, cal_perc, overtemp, free_space, low_battery,
+def data_sample(CI, CC, sm, can_poller, can_sock, cal_status, cal_perc, overtemp, free_space, low_battery,
                 driver_status, state, mismatch_counter, params):
   """Receive data from sockets and create events for battery, temperature and disk space"""
 
   # Update carstate from CAN and create events
-  can_strs = messaging.drain_sock_raw(can_sock, wait_for_one=True)
+  can_strs = messaging.drain_sock_raw_poller(can_poller, can_sock, wait_for_one=True)
   CS = CI.update(CC, can_strs)
 
   sm.update(0)
@@ -438,16 +441,18 @@ def controlsd_thread(sm=None, pm=None, can_sock=None):
     sm = messaging.SubMaster(['thermal', 'health', 'liveCalibration', 'driverMonitoring', 'plan', 'pathPlan', \
                               'gpsLocation'], ignore_alive=['gpsLocation'])
 
+  can_poller = zmq.Poller()
 
   if can_sock is None:
     can_timeout = None if os.environ.get('NO_CAN_TIMEOUT', False) else 100
-    can_sock = messaging.sub_sock('can', timeout=can_timeout)
+    can_sock = messaging.sub_sock(service_list['can'].port, timeout=can_timeout)
+    can_poller.register(can_sock)
 
   # wait for health and CAN packets
   hw_type = messaging.recv_one(sm.sock['health']).health.hwType
   has_relay = hw_type in [HwType.blackPanda, HwType.uno]
   print("Waiting for CAN messages...")
-  messaging.get_one_can(can_sock)
+  get_one_can(can_sock)
 
   CI, CP = get_car(can_sock, pm.sock['sendcan'], has_relay)
 
@@ -456,7 +461,7 @@ def controlsd_thread(sm=None, pm=None, can_sock=None):
   controller_available = CP.enableCamera and CI.CC is not None and not passive
   read_only = not car_recognized or not controller_available or CP.dashcamOnly
   if read_only:
-    CP.safetyModel = car.CarParams.SafetyModel.noOutput
+    CP.safetyModel = CP.safetyModelPassive
 
   # Write CarParams for radard and boardd safety mode
   params.put("CarParams", CP.to_bytes())
@@ -504,7 +509,9 @@ def controlsd_thread(sm=None, pm=None, can_sock=None):
   # controlsd is driven by can recv, expected at 100Hz
   rk = Ratekeeper(100, print_delay_threshold=None)
 
-  internet_needed = params.get("Offroad_ConnectivityNeeded", encoding='utf8') is not None
+  # FIXME: offroad alerts should not be created with negative severity
+  connectivity_alert = params.get("Offroad_ConnectivityNeeded", encoding='utf8')
+  internet_needed = connectivity_alert is not None and json.loads(connectivity_alert.replace("'", "\""))["severity"] >= 0
 
   prof = Profiler(False)  # off by default
 
@@ -514,7 +521,7 @@ def controlsd_thread(sm=None, pm=None, can_sock=None):
 
     # Sample data and compute car events
     CS, events, cal_status, cal_perc, overtemp, free_space, low_battery, mismatch_counter =\
-      data_sample(CI, CC, sm, can_sock, cal_status, cal_perc, overtemp, free_space, low_battery,
+      data_sample(CI, CC, sm, can_poller, can_sock, cal_status, cal_perc, overtemp, free_space, low_battery,
                   driver_status, state, mismatch_counter, params)
     prof.checkpoint("Sample")
 

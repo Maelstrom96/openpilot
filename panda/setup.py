@@ -13,7 +13,7 @@
 import codecs
 import os
 import re
-from setuptools import setup
+from setuptools import setup, Extension
 
 here = os.path.abspath(os.path.dirname(__file__))
 

@@ -51,8 +51,6 @@
 #include "cameras/camera_frame_stream.h"
 #endif
 
-#include "messaging.hpp"
-
 
 // 3 models
 #include "models/driving.h"
@@ -164,7 +162,8 @@ struct VisionState {
   ModelData model_bufs[UI_BUF_COUNT];
 
   MonitoringState monitoring;
-  PubSocket *monitoring_sock;
+  zsock_t *monitoring_sock;
+  void* monitoring_sock_raw;
 
   PosenetState posenet;
 
@@ -184,11 +183,14 @@ struct VisionState {
   DualCameraState cameras;
 
   zsock_t *terminate_pub;
+  zsock_t *recorder_sock;
+  void* recorder_sock_raw;
 
-  Context * msg_context;
-  PubSocket *recorder_sock;
-  PubSocket *posenet_sock;
-  PubSocket *thumbnail_sock;
+  zsock_t *posenet_sock;
+  void* posenet_sock_raw;
+
+  zsock_t *thumbnail_sock;
+  void* thumbnail_sock_raw;
 
   pthread_mutex_t clients_lock;
   VisionClientState clients[MAX_CLIENTS];
@@ -743,7 +745,7 @@ void* monitoring_thread(void *arg) {
       }
 
       // send dm packet
-      monitoring_publish(s->monitoring_sock, frame_data.frame_id, res, ir_target_set(&s->cameras.front.cur_gain_frac, res));
+      monitoring_publish(s->monitoring_sock_raw, frame_data.frame_id, res);
 
       //t2 = millis_since_boot();
       //LOGD("monitoring process: %.2fms, from last %.2fms", t2-t1, t1-last);
@@ -893,8 +895,9 @@ void* processing_thread(void *arg) {
   cl_command_queue q = clCreateCommandQueueWithProperties(s->context, s->device_id, props, &err);
   assert(err == 0);
 
-  Context * context = Context::create();
-  PubSocket * model_sock = PubSocket::create(context, "model");
+  zsock_t *model_sock = zsock_new_pub("@tcp://*:8009");
+  assert(model_sock);
+  void *model_sock_raw = zsock_resolve(model_sock);
 
 #ifdef SEND_NET_INPUT
   zsock_t *img_sock = zsock_new_pub("@tcp://*:9000");
@@ -1011,7 +1014,7 @@ void* processing_thread(void *arg) {
                            model_transform, img_sock_raw, NULL);
       mt2 = millis_since_boot();
 
-      model_publish(model_sock, frame_id, s->model_bufs[ui_idx], frame_data.timestamp_eof);
+      model_publish(model_sock_raw, frame_id, s->model_bufs[ui_idx], frame_data.timestamp_eof);
     }
 
 
@@ -1041,10 +1044,10 @@ void* processing_thread(void *arg) {
       kj::ArrayPtr<const float> transform_vs(&s->yuv_transform.v[0], 9);
       framed.setTransform(transform_vs);
 
-      if (s->recorder_sock != NULL) {
+      if (s->recorder_sock_raw != NULL) {
         auto words = capnp::messageToFlatArray(msg);
         auto bytes = words.asBytes();
-        s->recorder_sock->send((char*)bytes.begin(), bytes.size());
+        zmq_send(s->recorder_sock_raw, bytes.begin(), bytes.size(), ZMQ_DONTWAIT);
       }
     }
 
@@ -1079,7 +1082,7 @@ void* processing_thread(void *arg) {
 
         auto words = capnp::messageToFlatArray(msg);
         auto bytes = words.asBytes();
-        s->posenet_sock->send((char*)bytes.begin(), bytes.size());
+        zmq_send(s->posenet_sock_raw, bytes.begin(), bytes.size(), ZMQ_DONTWAIT);
       }
       pt3 = millis_since_boot();
       LOGD("pre: %.2fms | posenet: %.2fms", (pt2-pt1), (pt3-pt1));
@@ -1141,7 +1144,7 @@ void* processing_thread(void *arg) {
 
       auto words = capnp::messageToFlatArray(msg);
       auto bytes = words.asBytes();
-      s->thumbnail_sock->send((char*)bytes.begin(), bytes.size());
+      zmq_send(s->thumbnail_sock_raw, bytes.begin(), bytes.size(), ZMQ_DONTWAIT);
 
       free(thumbnail_buffer);
     }
@@ -1198,8 +1201,7 @@ void* processing_thread(void *arg) {
   fclose(dump_rgb_file);
 #endif
 
-  delete model_sock;
-  delete context;
+  zsock_destroy(&model_sock);
 
   return NULL;
 }
@@ -1210,9 +1212,14 @@ void* live_thread(void *arg) {
 
   set_thread_name("live");
 
-  Context * c = Context::create();
-  SubSocket * live_calibration_sock = SubSocket::create(c, "liveCalibration");
-  Poller * poller = Poller::create({live_calibration_sock});
+  zsock_t *terminate = zsock_new_sub(">inproc://terminate", "");
+  assert(terminate);
+
+  zsock_t *liveCalibration_sock = zsock_new_sub(">tcp://127.0.0.1:8019", "");
+  assert(liveCalibration_sock);
+
+  zpoller_t *poller = zpoller_new(liveCalibration_sock, terminate, NULL);
+  assert(poller);
 
   /*
      import numpy as np
@@ -1233,45 +1240,59 @@ void* live_thread(void *arg) {
     0.0,   0.0,   1.0;
 
   while (!do_exit) {
-    for (auto sock : poller->poll(10)){
-      Message * msg = sock->receive();
-
-      auto amsg = kj::heapArray<capnp::word>((msg->getSize() / sizeof(capnp::word)) + 1);
-      memcpy(amsg.begin(), msg->getData(), msg->getSize());
-
-      capnp::FlatArrayMessageReader cmsg(amsg);
-      cereal::Event::Reader event = cmsg.getRoot<cereal::Event>();
-
-      if (event.isLiveCalibration()) {
-        pthread_mutex_lock(&s->transform_lock);
-
-        auto extrinsic_matrix = event.getLiveCalibration().getExtrinsicMatrix();
-        Eigen::Matrix<float, 3, 4> extrinsic_matrix_eigen;
-        for (int i = 0; i < 4*3; i++){
-          extrinsic_matrix_eigen(i / 4, i % 4) = extrinsic_matrix[i];
-        }
-
-        auto camera_frame_from_road_frame = eon_intrinsics * extrinsic_matrix_eigen;
-        Eigen::Matrix<float, 3, 3> camera_frame_from_ground;
-        camera_frame_from_ground.col(0) = camera_frame_from_road_frame.col(0);
-        camera_frame_from_ground.col(1) = camera_frame_from_road_frame.col(1);
-        camera_frame_from_ground.col(2) = camera_frame_from_road_frame.col(3);
-
-        auto warp_matrix = camera_frame_from_ground * ground_from_medmodel_frame;
-
-        for (int i=0; i<3*3; i++) {
-          s->cur_transform.v[i] = warp_matrix(i / 3, i % 3);
-        }
-
-        s->run_model = true;
-        pthread_mutex_unlock(&s->transform_lock);
-      }
-
-      delete msg;
+    zsock_t *which = (zsock_t*)zpoller_wait(poller, -1);
+    if (which == terminate || which == NULL) {
+      break;
     }
 
+    zmq_msg_t msg;
+    err = zmq_msg_init(&msg);
+    assert(err == 0);
+
+    err = zmq_msg_recv(&msg, zsock_resolve(which), 0);
+    assert(err >= 0);
+    size_t len = zmq_msg_size(&msg);
+
+    // make copy due to alignment issues, will be freed on out of scope
+    auto amsg = kj::heapArray<capnp::word>((len / sizeof(capnp::word)) + 1);
+    memcpy(amsg.begin(), (const uint8_t*)zmq_msg_data(&msg), len);
+
+    // track camera frames to sync to encoder
+    capnp::FlatArrayMessageReader cmsg(amsg);
+    cereal::Event::Reader event = cmsg.getRoot<cereal::Event>();
+
+    if (event.isLiveCalibration()) {
+      pthread_mutex_lock(&s->transform_lock);
+
+      auto extrinsic_matrix = event.getLiveCalibration().getExtrinsicMatrix();
+      Eigen::Matrix<float, 3, 4> extrinsic_matrix_eigen;
+      for (int i = 0; i < 4*3; i++){
+        extrinsic_matrix_eigen(i / 4, i % 4) = extrinsic_matrix[i];
+      }
+
+      auto camera_frame_from_road_frame = eon_intrinsics * extrinsic_matrix_eigen;
+      Eigen::Matrix<float, 3, 3> camera_frame_from_ground;
+      camera_frame_from_ground.col(0) = camera_frame_from_road_frame.col(0);
+      camera_frame_from_ground.col(1) = camera_frame_from_road_frame.col(1);
+      camera_frame_from_ground.col(2) = camera_frame_from_road_frame.col(3);
+
+      auto warp_matrix = camera_frame_from_ground * ground_from_medmodel_frame;
+
+      for (int i=0; i<3*3; i++) {
+        s->cur_transform.v[i] = warp_matrix(i / 3, i % 3);
+      }
+
+      s->run_model = true;
+      pthread_mutex_unlock(&s->transform_lock);
+    }
+
+    zmq_msg_close(&msg);
   }
 
+  zpoller_destroy(&poller);
+  zsock_destroy(&terminate);
+
+  zsock_destroy(&liveCalibration_sock);
 
   return NULL;
 }
@@ -1379,6 +1400,7 @@ int main(int argc, char **argv) {
   monitoring_init(&s->monitoring, s->device_id, s->context);
   posenet_init(&s->posenet);
 
+  // s->zctx = zctx_shadow_zmq_ctx(zsys_init());
 
   cameras_init(&s->cameras);
 
@@ -1393,16 +1415,23 @@ int main(int argc, char **argv) {
 
   init_buffers(s);
 
-  s->msg_context = Context::create();
-
   #ifdef QCOM
-    s->recorder_sock = PubSocket::create(s->msg_context, "frame");
+    s->recorder_sock = zsock_new_pub("@tcp://*:8002");
+    assert(s->recorder_sock);
+    s->recorder_sock_raw = zsock_resolve(s->recorder_sock);
   #endif
 
-  s->monitoring_sock = PubSocket::create(s->msg_context, "driverMonitoring");
-  s->posenet_sock = PubSocket::create(s->msg_context, "cameraOdometry");
-  s->thumbnail_sock = PubSocket::create(s->msg_context, "thumbnail");
+  s->monitoring_sock = zsock_new_pub("@tcp://*:8063");
+  assert(s->monitoring_sock);
+  s->monitoring_sock_raw = zsock_resolve(s->monitoring_sock);
 
+  s->posenet_sock = zsock_new_pub("@tcp://*:8066");
+  assert(s->posenet_sock);
+  s->posenet_sock_raw = zsock_resolve(s->posenet_sock);
+
+  s->thumbnail_sock = zsock_new_pub("@tcp://*:8069");
+  assert(s->thumbnail_sock);
+  s->thumbnail_sock_raw = zsock_resolve(s->thumbnail_sock);
 
   cameras_open(&s->cameras, &s->camera_bufs[0], &s->focus_bufs[0], &s->stats_bufs[0], &s->front_camera_bufs[0]);
 
@@ -1411,12 +1440,11 @@ int main(int argc, char **argv) {
   }
   party(s);
 
-
-  delete s->recorder_sock;
-  delete s->monitoring_sock;
-  delete s->posenet_sock;
-  delete s->thumbnail_sock;
-  delete s->msg_context;
+  zsock_destroy(&s->recorder_sock);
+  zsock_destroy(&s->monitoring_sock);
+  zsock_destroy(&s->posenet_sock);
+  zsock_destroy(&s->thumbnail_sock);
+  // zctx_destroy(&s->zctx);
 
   model_free(&s->model);
   monitoring_free(&s->monitoring);

@@ -19,13 +19,12 @@ CXXFLAGS = -std=c++11 -g -fPIC -O2 $(WARN_FLAGS) \
             -I$(PHONELIBS)/android_system_core/include \
             -I$(PHONELIBS)/android_hardware_libhardware/include
 
-MESSAGING_FLAGS = -I$(BASEDIR)/selfdrive/messaging
-MESSAGING_LIBS = $(BASEDIR)/selfdrive/messaging/messaging.a
+ZMQ_LIBS = -l:libczmq.a -l:libzmq.a -llog -luuid -lgnustl_shared
 
-# Sensord can only be compiled for the phone
+ifeq ($(ARCH),aarch64)
 CFLAGS += -mcpu=cortex-a57
 CXXFLAGS += -mcpu=cortex-a57
-EXTRA_LIBS += -lgnustl_shared
+endif
 
 
 JSON_FLAGS = -I$(PHONELIBS)/json/src
@@ -48,26 +47,26 @@ GPSD_OBJS = gpsd.o \
 
 DEPS := $(SENSORD_OBJS:.o=.d) $(GPSD_OBJS:.o=.d)
 
-sensord: $(SENSORD_OBJS) $(MESSAGING_LIBS)
+sensord: $(SENSORD_OBJS)
 	@echo "[ LINK ] $@"
 	$(CXX) -fPIC -o '$@' $^ \
             $(CEREAL_LIBS) \
-            $(EXTRA_LIBS) \
+            $(ZMQ_LIBS) \
             -lhardware
 
-gpsd: $(GPSD_OBJS) $(MESSAGING_LIBS)
+gpsd: $(GPSD_OBJS)
 	@echo "[ LINK ] $@"
 	$(CXX) -fPIC -o '$@' $^ \
             $(CEREAL_LIBS) \
+            $(ZMQ_LIBS) \
             $(DIAG_LIBS) \
-            $(EXTRA_LIBS) \
             -lhardware
 
 %.o: %.cc
 	@echo "[ CXX ] $@"
 	$(CXX) $(CXXFLAGS) \
            $(CEREAL_CXXFLAGS) \
-           $(MESSAGING_FLAGS) \
+           $(ZMQ_FLAGS) \
            $(JSON_FLAGS) \
            -I../ \
            -I../../ \
@@ -78,7 +77,6 @@ gpsd: $(GPSD_OBJS) $(MESSAGING_LIBS)
 	@echo "[ CC ] $@"
 	$(CC) $(CFLAGS) \
            $(JSON_FLAGS) \
-           $(ZMQ_FLAGS) \
            -I../ \
            -I../../ \
            -c -o '$@' '$<'

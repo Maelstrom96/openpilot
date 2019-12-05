@@ -7,10 +7,10 @@
 #include <log/logger.h>
 #include <log/logprint.h>
 
+#include <zmq.h>
 #include <capnp/serialize.h>
 #include "common/timing.h"
 #include "cereal/gen/cpp/log.capnp.h"
-#include "messaging.hpp"
 
 int main() {
   int err;
@@ -28,8 +28,10 @@ int main() {
 //  struct logger *kernel_logger = android_logger_open(logger_list, LOG_ID_KERNEL);
 //  assert(kernel_logger);
 
-  Context * c = Context::create();
-  PubSocket * androidLog = PubSocket::create(c, "androidLog");
+  void *context = zmq_ctx_new();
+  void *publisher = zmq_socket(context, ZMQ_PUB);
+  err = zmq_bind(publisher, "tcp://*:8020");
+  assert(err == 0);
 
   while (1) {
     log_msg log_msg;
@@ -58,13 +60,10 @@ int main() {
 
     auto words = capnp::messageToFlatArray(msg);
     auto bytes = words.asBytes();
-    androidLog->send((char*)bytes.begin(), bytes.size());
+    zmq_send(publisher, bytes.begin(), bytes.size(), 0);
   }
 
   android_logger_list_close(logger_list);
-
-  delete c;
-  delete androidLog;
 
   return 0;
 }

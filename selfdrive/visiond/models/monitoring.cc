@@ -6,18 +6,9 @@
 #define MODEL_WIDTH 320
 #define MODEL_HEIGHT 160
 
-#define MAX_IR_POWER 0.5f
-#define MIN_IR_POWER 0.0f
-#define CUTOFF_GAIN 0.015625f // iso400
-#define SATURATE_GAIN 0.0625f // iso1600
-
-// match driver_monitor.py
-#define FACE_THRESH 0.4f
-#define EYE_THRESH 0.4f
-
 void monitoring_init(MonitoringState* s, cl_device_id device_id, cl_context context) {
   model_input_init(&s->in, MODEL_WIDTH, MODEL_HEIGHT, device_id, context);
-  s->m = new DefaultRunModel("../../models/monitoring_model.dlc", (float*)&s->output, OUTPUT_SIZE, USE_DSP_RUNTIME);
+  s->m = new SNPEModel("../../models/monitoring_model.dlc", (float*)&s->output, OUTPUT_SIZE);
 }
 
 MonitoringResult monitoring_eval_frame(MonitoringState* s, cl_command_queue q,
@@ -57,7 +48,7 @@ MonitoringResult monitoring_eval_frame(MonitoringState* s, cl_command_queue q,
   return ret;
 }
 
-void monitoring_publish(PubSocket* sock, uint32_t frame_id, const MonitoringResult res, float ir_target) {
+void monitoring_publish(void* sock, uint32_t frame_id, const MonitoringResult res) {
         // make msg
         capnp::MallocMessageBuilder msg;
         cereal::Event::Builder event = msg.initRoot<cereal::Event>();
@@ -75,34 +66,14 @@ void monitoring_publish(PubSocket* sock, uint32_t frame_id, const MonitoringResu
         framed.setRightEyeProb(res.right_eye_prob);
         framed.setLeftBlinkProb(res.left_blink_prob);
         framed.setRightBlinkProb(res.right_blink_prob);
-        framed.setIrPwr(ir_target);
 
         // send message
         auto words = capnp::messageToFlatArray(msg);
         auto bytes = words.asBytes();
-        sock->send((char*)bytes.begin(), bytes.size());
+        zmq_send(sock, bytes.begin(), bytes.size(), ZMQ_DONTWAIT);
       }
 
 void monitoring_free(MonitoringState* s) {
   model_input_free(&s->in);
   delete s->m;
-}
-
-float ir_target_set(float *cur_front_gain, const MonitoringResult res) {
-  bool face_detected = res.face_prob > FACE_THRESH;
-  bool eyes_detected = (res.left_eye_prob > EYE_THRESH) && (res.right_eye_prob > EYE_THRESH);
-  static float set_point = 0.5;
-
-  if ((*cur_front_gain <= CUTOFF_GAIN) && !face_detected) {
-    set_point = MIN_IR_POWER;
-  } else if (face_detected && eyes_detected) {
-    if (*cur_front_gain > SATURATE_GAIN) {
-      set_point = MAX_IR_POWER;
-    } else {
-      set_point = MIN_IR_POWER + ((*cur_front_gain - CUTOFF_GAIN) * (MAX_IR_POWER - MIN_IR_POWER) / (SATURATE_GAIN - CUTOFF_GAIN));
-    }
-  } else {
-    set_point = (set_point*1.1 > MAX_IR_POWER) ? MAX_IR_POWER : set_point*1.1;
-  }
-  return set_point;
 }

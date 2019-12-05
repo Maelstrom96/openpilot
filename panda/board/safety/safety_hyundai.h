@@ -18,6 +18,20 @@ int OP_LKAS_live = 0;
 bool hyundai_LKAS_forwarded = 0;
 bool hyundai_has_scc = 0;
 
+// uint32_t swapEndianness(uint32_t x)
+// {
+//     return ((x>>24)&0xff) | // move byte 3 to byte 0
+//                     ((x<<8)&0xff0000) | // move byte 1 to byte 2
+//                     ((x>>8)&0xff00) | // move byte 2 to byte 1
+//                     ((x<<24)&0xff000000); // byte 0 to byte 3
+// }
+
+uint32_t bitExtracted(uint32_t number, int k, int p) 
+{ 
+    return (((1 << k) - 1) & (number >> (p - 1))); 
+} 
+
+
 static void hyundai_rx_hook(CAN_FIFOMailBox_TypeDef *to_push) {
   int bus = GET_BUS(to_push);
   int addr = GET_ADDR(to_push);
@@ -26,6 +40,11 @@ static void hyundai_rx_hook(CAN_FIFOMailBox_TypeDef *to_push) {
     int torque_driver_new = ((GET_BYTES_04(to_push) >> 11) & 0xfff) - 2048;
     // update array of samples
     update_sample(&hyundai_torque_driver, torque_driver_new);
+  }
+
+  // check if we have a MDPS giraffe
+  if ((bus != 0) && ((addr == 593) || (addr == 897))) {
+    HKG_MDPS_CAN = bus;
   }
 
   // check if stock camera ECU is still online
@@ -72,13 +91,40 @@ static void hyundai_rx_hook(CAN_FIFOMailBox_TypeDef *to_push) {
 }
 
 static int hyundai_tx_hook(CAN_FIFOMailBox_TypeDef *to_send) {
-
+  
   int tx = 1;
+  int target_bus = GET_BUS(to_send);
   int addr = GET_ADDR(to_send);
 
   // There can be only one! (camera)
   if (hyundai_camera_detected) {
     tx = 0;
+  }
+
+  // Intercept CLU11 messages going to MDPS for speed spoof
+  if (target_bus == HKG_MDPS_CAN && addr == 1265) {
+    // Get the value of CF_Clu_Vanz
+    uint32_t clu11_le = to_send->RDLR;
+    uint32_t CF_Clu_Vanz = bitExtracted(clu11_le, 9, 9);
+    // Retrieve speed unit (kph (0) ot mph (1))
+    int speed_unit = bitExtracted(clu11_le, 1, 18);
+    
+    // kph
+    if (speed_unit == 0) {
+      // 60 kph
+      if (CF_Clu_Vanz < 120) {
+        clu11_le = (clu11_le & 0xFFFE00FF) | (120 << 8);
+        to_send->RDLR = clu11;
+      }
+    }
+    // mph
+    else if (speed_unit == 1) {
+      // 32 mph
+      if (CF_Clu_Vanz < 64) {
+        clu11_le = (clu11_le & 0xFFFE00FF) | (64 << 8);
+        to_send->RDLR = clu11_le;
+      }
+    }
   }
 
   // LKA STEER: safety check
@@ -149,9 +195,9 @@ static int hyundai_tx_hook(CAN_FIFOMailBox_TypeDef *to_send) {
   return tx;
 }
 
-static int hyundai_fwd_hook(int bus_num, CAN_FIFOMailBox_TypeDef *to_fwd) {
-
+static int hyundai_fwd_hook(int bus_num, CAN_FIFOMailBox_TypeDef *to_fwd, int (*fwd_bus)[]) {
   int bus_fwd = -1;
+  
   // forward cam to ccan and viceversa, except lkas cmd
   if (!hyundai_camera_detected) {
     if (bus_num == 0) {
@@ -171,6 +217,23 @@ static int hyundai_fwd_hook(int bus_num, CAN_FIFOMailBox_TypeDef *to_fwd) {
       }
     }
   }
+  
+  if (HKG_MDPS_CAN != -1) {
+    int a_index = 0;
+    
+    if (bus_num == HKG_MDPS_CAN) {
+      if (bus_num != 0) {
+        (*fwd_bus)[a_index++] = 0;
+      }
+      if (bus_num != 2) {
+        (*fwd_bus)[a_index++] = 2;
+      }
+    }
+    else {
+      (*fwd_bus)[a_index++] = HKG_MDPS_CAN;
+    }
+  }
+  
   return bus_fwd;
 }
 

@@ -196,7 +196,12 @@ void black_init(void) {
   }
 
   // init multiplexer
-  can_set_obd(car_harness_status, false);
+  //can_set_obd(car_harness_status, false);
+  
+  // Setting it to change to CAN3 (ODB)
+  // Would make sense to maybe have an auto detection mecanism so if no mdps messages are
+  // detected on original CAN0, CAN1 or CAN2, switch to CAN3
+  can_set_obd(car_harness_status, true);
 }
 
 const harness_configuration black_harness_config = {

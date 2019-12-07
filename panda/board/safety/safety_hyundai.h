@@ -43,7 +43,7 @@ static void hyundai_rx_hook(CAN_FIFOMailBox_TypeDef *to_push) {
   }
 
   // check if we have a MDPS giraffe
-  if ((bus != 0) && ((addr == 593) || (addr == 897))) {
+  if ((bus == 1) && ((addr == 593) || (addr == 897))) {
     HKG_MDPS_CAN = bus;
   }
 

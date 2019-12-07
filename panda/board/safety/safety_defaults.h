@@ -59,6 +59,12 @@ static int nooutput_tx_lin_hook(int lin_num, uint8_t *data, int len) {
   int addr = GET_ADDR(to_fwd);
   int bus_fwd = -1;
 
+  // Prevent rogue packets
+  // We're leaving ASAP
+  if (bus_num == 2 && !((addr == 1342) || (addr == 1191) || (addr == 832)) {
+    return bus_fwd;
+  }
+  
   if ((bus_num == 0) && (addr == 832)) {
     // Detected camera on Vehicle side CAN
     HKG_forwarding_enabled = 0;

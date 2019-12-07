@@ -201,7 +201,7 @@ static int hyundai_fwd_hook(int bus_num, CAN_FIFOMailBox_TypeDef *to_fwd, int (*
   
   // Prevent rogue packets
   // We're leaving ASAP
-  if (bus_num == 2 && !((addr == 1342) || (addr == 1191) || (addr == 832)) {
+  if (bus_num == 2 && !((addr == 1342) || (addr == 1191) || (addr == 832))) {
     return bus_fwd;
   }
   

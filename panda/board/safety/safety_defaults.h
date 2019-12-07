@@ -61,7 +61,7 @@ static int nooutput_tx_lin_hook(int lin_num, uint8_t *data, int len) {
 
   // Prevent rogue packets
   // We're leaving ASAP
-  if (bus_num == 2 && !((addr == 1342) || (addr == 1191) || (addr == 832)) {
+  if (bus_num == 2 && !((addr == 1342) || (addr == 1191) || (addr == 832))) {
     return bus_fwd;
   }
   

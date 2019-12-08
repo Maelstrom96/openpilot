@@ -196,6 +196,7 @@ static int hyundai_tx_hook(CAN_FIFOMailBox_TypeDef *to_send) {
 }
 
 static int hyundai_fwd_hook(int bus_num, CAN_FIFOMailBox_TypeDef *to_fwd, int (*fwd_bus)[]) {
+  int addr = GET_ADDR(to_fwd);
   int bus_fwd = -1;
   
   // forward cam to ccan and viceversa, except lkas cmd
@@ -204,13 +205,12 @@ static int hyundai_fwd_hook(int bus_num, CAN_FIFOMailBox_TypeDef *to_fwd, int (*
       bus_fwd = hyundai_camera_bus;
     }
     if (bus_num == hyundai_camera_bus) {
-      int addr = GET_ADDR(to_fwd);
       if (addr != 832) {
         bus_fwd = 0;
       }
       else if (!OP_LKAS_live) {
         hyundai_LKAS_forwarded = 1;
-        //bus_fwd = 0;
+        bus_fwd = 0;
       }
       else {
         OP_LKAS_live -= 1;
@@ -229,7 +229,7 @@ static int hyundai_fwd_hook(int bus_num, CAN_FIFOMailBox_TypeDef *to_fwd, int (*
         (*fwd_bus)[a_index++] = 2;
       }
     }
-    else {
+    else if (addr != 832 || !OP_LKAS_live) {
       (*fwd_bus)[a_index++] = HKG_MDPS_CAN;
     }
   }

@@ -67,6 +67,10 @@ static int nooutput_tx_lin_hook(int lin_num, uint8_t *data, int len) {
     // Detected camera on Vehicle side CAN
     HKG_forwarding_enabled = 0;
   }
+  else if ((bus_num == 2) && (addr == 832)) {
+    // Detected camera on harness
+    HKG_forwarding_enabled = 1;
+  }
 
   if (HKG_forwarding_enabled) {
     if (bus_num == 0) {

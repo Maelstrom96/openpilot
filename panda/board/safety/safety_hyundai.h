@@ -93,7 +93,7 @@ static void hyundai_rx_hook(CAN_FIFOMailBox_TypeDef *to_push) {
 static int hyundai_tx_hook(CAN_FIFOMailBox_TypeDef *to_send) {
   
   int tx = 1;
-  int target_bus = GET_BUS(to_send);
+  //int target_bus = GET_BUS(to_send);
   int addr = GET_ADDR(to_send);
 
   // There can be only one! (camera)

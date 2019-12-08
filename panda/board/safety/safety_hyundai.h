@@ -235,7 +235,7 @@ static int hyundai_fwd_hook(int bus_num, CAN_FIFOMailBox_TypeDef *to_fwd, int (*
         (*fwd_bus)[a_index++] = 2;
       }
     }
-    else {
+    else if (addr != 832 || !OP_LKAS_live) {
       (*fwd_bus)[a_index++] = HKG_MDPS_CAN;
     }
   }

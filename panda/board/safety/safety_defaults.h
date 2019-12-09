@@ -63,15 +63,6 @@ static int nooutput_tx_lin_hook(int lin_num, uint8_t *data, int len) {
   int addr = GET_ADDR(to_fwd);
   int bus_fwd = -1;
 
-  if ((bus_num == 0) && (addr == 832)) {
-    // Detected camera on Vehicle side CAN
-    HKG_forwarding_enabled = 0;
-  }
-  else if ((bus_num == 2) && (addr == 832)) {
-    // Detected camera on harness
-    HKG_forwarding_enabled = 1;
-  }
-
   if (HKG_forwarding_enabled) {
     if (bus_num == 0) {
       // MDPS12

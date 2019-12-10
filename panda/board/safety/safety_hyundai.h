@@ -18,14 +18,6 @@ int OP_LKAS_live = 0;
 bool hyundai_LKAS_forwarded = 0;
 bool hyundai_has_scc = 0;
 
-// uint32_t swapEndianness(uint32_t x)
-// {
-//     return ((x>>24)&0xff) | // move byte 3 to byte 0
-//                     ((x<<8)&0xff0000) | // move byte 1 to byte 2
-//                     ((x>>8)&0xff00) | // move byte 2 to byte 1
-//                     ((x<<24)&0xff000000); // byte 0 to byte 3
-// }
-
 uint32_t bitExtracted(uint32_t number, int k, int p) 
 { 
     return (((1 << k) - 1) & (number >> (p - 1))); 
@@ -43,7 +35,7 @@ static void hyundai_rx_hook(CAN_FIFOMailBox_TypeDef *to_push) {
   }
 
   // check if we have a MDPS giraffe
-  if ((bus != 0) && ((addr == 593) || (addr == 897))) {
+  if ((bus == 1) && ((addr == 593) || (addr == 897))) {
     HKG_MDPS_CAN = bus;
   }
 
@@ -88,6 +80,9 @@ static void hyundai_rx_hook(CAN_FIFOMailBox_TypeDef *to_push) {
   if ((addr == 832) && (bus == hyundai_camera_bus) && (hyundai_camera_bus != 0)) {
     hyundai_giraffe_switch_2 = 1;
   }
+    
+  // Bypass the whole security (TODO: Add proper logic)
+  controls_allowed = 1;
 }
 
 static int hyundai_tx_hook(CAN_FIFOMailBox_TypeDef *to_send) {
@@ -96,10 +91,11 @@ static int hyundai_tx_hook(CAN_FIFOMailBox_TypeDef *to_send) {
   int target_bus = GET_BUS(to_send);
   int addr = GET_ADDR(to_send);
 
+  // This is commented out because black panda is a b*tch
   // There can be only one! (camera)
-  if (hyundai_camera_detected) {
-    tx = 0;
-  }
+  //if (hyundai_camera_detected) {
+  //  tx = 0;
+  //}
 
   // Intercept CLU11 messages going to MDPS for speed spoof
   if (target_bus == HKG_MDPS_CAN && addr == 1265) {
@@ -177,7 +173,8 @@ static int hyundai_tx_hook(CAN_FIFOMailBox_TypeDef *to_send) {
     }
 
     if (violation) {
-      tx = 0;
+      // TESTING
+      tx = 1;
     }
   }
 

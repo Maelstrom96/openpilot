@@ -9,7 +9,7 @@ void default_rx_hook(CAN_FIFOMailBox_TypeDef *to_push) {
   int addr = GET_ADDR(to_push);
   
   // check if we have a MDPS giraffe
-  if ((bus != 0) && ((addr == 593) || (addr == 897))) {
+  if ((bus == 1) && ((addr == 593) || (addr == 897))) {
     HKG_MDPS_CAN = bus;
   }
   
@@ -58,17 +58,6 @@ static int nooutput_tx_lin_hook(int lin_num, uint8_t *data, int len) {
  static int default_fwd_hook(int bus_num, CAN_FIFOMailBox_TypeDef *to_fwd, int (*fwd_bus)[]) {
   int addr = GET_ADDR(to_fwd);
   int bus_fwd = -1;
-
-  // Prevent rogue packets
-  // We're leaving ASAP
-  if (bus_num == 2 && !((addr == 1342) || (addr == 1191) || (addr == 832))) {
-    return bus_fwd;
-  }
-  
-  if ((bus_num == 0) && (addr == 832)) {
-    // Detected camera on Vehicle side CAN
-    HKG_forwarding_enabled = 0;
-  }
 
   if (HKG_forwarding_enabled) {
     if (bus_num == 0) {

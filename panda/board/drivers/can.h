@@ -403,7 +403,7 @@ void CAN3_SCE_IRQHandler(void) { can_sce(CAN3); }
 
 void can_send(CAN_FIFOMailBox_TypeDef *to_push, uint8_t bus_number) {
   // insert the proper bus value
-  //to_push->RDTR = (to_push->RDTR & 0xFFFFF00F) | bus_number << 4;
+  to_push->RDTR = (to_push->RDTR & 0xFFFFF00F) | bus_number << 4;
   
   if (safety_tx_hook(to_push) != 0) {
     if (bus_number < BUS_MAX) {

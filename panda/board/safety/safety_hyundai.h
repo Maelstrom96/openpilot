@@ -178,7 +178,7 @@ static int hyundai_fwd_hook(int bus_num, CAN_FIFOMailBox_TypeDef *to_fwd) {
 // Since this is being called to early and is getting overridden in main.c
 static void hyundai_init(int16_t param) {
   UNUSED(param);
-  controls_allowed = 0;
+  controls_allowed = 1;
   hyundai_giraffe_switch_2 = 0;
 }
 

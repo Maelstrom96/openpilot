@@ -116,7 +116,7 @@ const safety_hooks hyundai_puf_hooks = {
   .init = hyundai_init,
   .rx = hyundai_puf_rx_hook,
   .tx = alloutput_tx_hook,
-  .tx_lin = nooutput_tx_lin_hook,
+  .tx_lin = alloutput_tx_lin_hook,
   .ignition = default_ign_hook,
   .fwd = hyundai_puf_fwd_hook,
 };

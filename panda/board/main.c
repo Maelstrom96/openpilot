@@ -714,7 +714,7 @@ int main(void) {
       // if SAFETY_NOOUTPUT isn't succesfully set, we can't continue
     }
   }
-  can_silent = ALL_CAN_LIVE;
+  can_silent = ALL_CAN_SILENT;
   can_init_all();
   
   // Let's reset the safety mode since we're applying a ALL_CAN_SILENT

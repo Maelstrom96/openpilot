@@ -109,7 +109,6 @@ static int hyundai_puf_fwd_hook(int bus_num, CAN_FIFOMailBox_TypeDef *to_fwd) {
       bus_fwd = 0;
     }
   }
-  puts("fwd_puf");
   return bus_fwd;
 }
 

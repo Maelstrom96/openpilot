@@ -221,6 +221,11 @@ void can_set_gmlan(uint8_t bus) {
 
 // TODO: remove
 void can_set_obd(uint8_t harness_orientation, bool obd){
+  // Always have the Panda in OBD mode
+  if (default_safety_mode == SAFETY_HYUNDAI_PUF) {
+    obd = true;
+  }
+  
   if(obd){
     puts("setting CAN2 to be OBD\n");
   } else {

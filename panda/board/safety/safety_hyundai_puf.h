@@ -109,6 +109,7 @@ static int hyundai_puf_fwd_hook(int bus_num, CAN_FIFOMailBox_TypeDef *to_fwd) {
       bus_fwd = 0;
     }
   }
+  puts("fwd_puf");
   return bus_fwd;
 }
 
@@ -116,7 +117,7 @@ const safety_hooks hyundai_puf_hooks = {
   .init = hyundai_init,
   .rx = hyundai_puf_rx_hook,
   .tx = alloutput_tx_hook,
-  .tx_lin = nooutput_tx_lin_hook,
+  .tx_lin = alloutput_tx_lin_hook,
   .ignition = default_ign_hook,
   .fwd = hyundai_puf_fwd_hook,
 };

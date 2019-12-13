@@ -37,6 +37,8 @@
 #define SAFETY_ALLOUTPUT 17U
 #define SAFETY_GM_ASCM 18U
 
+const uint16_t default_safety_mode = SAFETY_HYUNDAI_PUF;
+
 //uint16_t current_safety_mode = SAFETY_NOOUTPUT;
 //const safety_hooks *current_hooks = &nooutput_hooks;
 
@@ -82,6 +84,7 @@ const safety_hook_config safety_hook_registry[] = {
   {SAFETY_FORD, &ford_hooks},
   {SAFETY_CADILLAC, &cadillac_hooks},
   {SAFETY_HYUNDAI, &hyundai_hooks},
+  {SAFETY_HYUNDAI_PUF, &hyundai_puf_hooks},
   {SAFETY_CHRYSLER, &chrysler_hooks},
   {SAFETY_TESLA, &tesla_hooks},
   {SAFETY_SUBARU, &subaru_hooks},

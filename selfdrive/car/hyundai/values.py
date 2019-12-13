@@ -1,5 +1,7 @@
 from selfdrive.car import dbc_dict
 
+MDPS_CAN = 1
+
 class CAR:
   ELANTRA = "HYUNDAI ELANTRA LIMITED ULTIMATE 2017"
   GENESIS = "HYUNDAI GENESIS 2018"

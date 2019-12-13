@@ -1,10 +1,12 @@
 from cereal import car
-from selfdrive.car.hyundai.values import DBC, STEER_THRESHOLD, FEATURES
+from selfdrive.car.hyundai.values import DBC, STEER_THRESHOLD, FEATURES, MDPS_CAN
 from selfdrive.can.parser import CANParser
 from selfdrive.config import Conversions as CV
 from common.kalman.simple_kalman import KF1D
 
 GearShifter = car.CarState.GearShifter
+
+mdps_detection_value = -9999
 
 def get_can_parser(CP):
 
@@ -118,6 +120,27 @@ def get_can_parser(CP):
     ]
   return CANParser(DBC[CP.carFingerprint]['pt'], signals, checks, 0)
 
+# This is used in the case that the MDPS is on the CAN 1 using MDPS Harness
+def get_mdps_parser(CP):
+
+  signals = [
+    # sig_name, sig_address, default
+    ("CR_Mdps_DrvTq", "MDPS11", 0),
+
+    ("CR_Mdps_StrColTq", "MDPS12", 0),
+    ("CF_Mdps_ToiActive", "MDPS12", 0),
+    ("CF_Mdps_ToiUnavail", "MDPS12", 0),
+    ("CF_Mdps_FailStat", "MDPS12", 0),
+    ("CR_Mdps_OutTq", "MDPS12", 0),
+
+    ("SAS_Angle", "SAS11", 0),
+    # Using this signal as the MDPS Harness detector.
+    ("SAS_Speed", "SAS11", mdps_detection_value),
+  ]
+
+  checks = []
+
+  return CANParser(DBC[CP.carFingerprint]['pt'], signals, checks, MDPS_CAN)
 
 def get_camera_parser(CP):
 

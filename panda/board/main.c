@@ -714,6 +714,9 @@ int main(void) {
   }
   can_silent = ALL_CAN_SILENT;
   can_init_all();
+  
+  // Let's reset the safety mode since we're applying a ALL_CAN_SILENT
+  err = safety_set_mode(default_safety_mode, 0);
 
 #ifndef EON
   spi_init();

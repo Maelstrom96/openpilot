@@ -707,18 +707,15 @@ int main(void) {
 
   // default to silent mode to prevent issues with Ford
   // hardcode a specific safety mode if you want to force the panda to be in a specific mode
-  int err = safety_set_mode(SAFETY_NOOUTPUT, 0);
+  int err = safety_set_mode(default_safety_mode, 0);
   if (err == -1) {
     puts("Failed to set safety mode\n");
     while (true) {
       // if SAFETY_NOOUTPUT isn't succesfully set, we can't continue
     }
   }
-  can_silent = ALL_CAN_SILENT;
+  can_silent = ALL_CAN_LIVE;
   can_init_all();
-  
-  // Let's reset the safety mode since we're applying a ALL_CAN_SILENT
-  err = safety_set_mode(default_safety_mode, 0);
 
 #ifndef EON
   spi_init();

@@ -116,16 +116,28 @@ void set_safety_mode(uint16_t mode, int16_t param) {
   } else {
     switch (mode) {
         case SAFETY_NOOUTPUT:
+          puts("Setting safety mode to NOOUTPUT \n");
           set_intercept_relay(false);
           if(hw_type == HW_TYPE_BLACK_PANDA){
             current_board->set_can_mode(CAN_MODE_NORMAL);
           }
-          can_silent = ALL_CAN_LIVE;
+          can_silent = ALL_CAN_SILENT;
           break;
         case SAFETY_ELM327:
           set_intercept_relay(false);
           heartbeat_counter = 0U;
           if(hw_type == HW_TYPE_BLACK_PANDA){
+            current_board->set_can_mode(CAN_MODE_OBD_CAN2);
+          }
+          can_silent = ALL_CAN_LIVE;
+          break;
+        case SAFETY_HYUNDAI:
+        case SAFETY_HYUNDAI_PUF:
+          puts("Setting safety mode to HYUNDAI or HYUNDAI PUF \n");
+          set_intercept_relay(true);
+          heartbeat_counter = 0U;
+          if(hw_type == HW_TYPE_BLACK_PANDA){
+            // Always set to use OBD2 CAN
             current_board->set_can_mode(CAN_MODE_OBD_CAN2);
           }
           can_silent = ALL_CAN_LIVE;
@@ -617,9 +629,10 @@ void TIM3_IRQHandler(void) {
     // check heartbeat counter if we are running EON code. If the heartbeat has been gone for a while, go to NOOUTPUT safety mode.
     #ifdef EON
     if (heartbeat_counter >= (current_board->check_ignition() ? EON_HEARTBEAT_IGNITION_CNT_ON : EON_HEARTBEAT_IGNITION_CNT_OFF)) {
-      puts("EON hasn't sent a heartbeat for 0x"); puth(heartbeat_counter); puts(" seconds. Safety is set to NOOUTPUT mode.\n");
-      if(current_safety_mode != SAFETY_NOOUTPUT){
-        set_safety_mode(SAFETY_NOOUTPUT, 0U);
+      puts("EON hasn't sent a heartbeat for 0x"); puth(heartbeat_counter); puts(" seconds.\n");
+      if(current_safety_mode != SAFETY_NOOUTPUT && current_safety_mode != SAFETY_HYUNDAI_PUF){
+        puts("Safety is set to the default safety mode mode.\n");
+        set_safety_mode(default_safety_mode, 0U);
       }
     }
     #endif
@@ -694,7 +707,7 @@ int main(void) {
 
   // default to silent mode to prevent issues with Ford
   // hardcode a specific safety mode if you want to force the panda to be in a specific mode
-  int err = safety_set_mode(SAFETY_NOOUTPUT, 0);
+  int err = safety_set_mode(default_safety_mode, 0);
   if (err == -1) {
     puts("Failed to set safety mode\n");
     while (true) {

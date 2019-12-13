@@ -11,6 +11,7 @@
 #include "safety/safety_ford.h"
 #include "safety/safety_cadillac.h"
 #include "safety/safety_hyundai.h"
+#include "safety/safety_hyundai_puf.h"
 #include "safety/safety_chrysler.h"
 #include "safety/safety_subaru.h"
 #include "safety/safety_mazda.h"
@@ -26,6 +27,7 @@
 #define SAFETY_FORD 6U
 #define SAFETY_CADILLAC 7U
 #define SAFETY_HYUNDAI 8U
+#define SAFETY_HYUNDAI_PUF 81U
 #define SAFETY_CHRYSLER 9U
 #define SAFETY_TESLA 10U
 #define SAFETY_SUBARU 11U
@@ -35,8 +37,15 @@
 #define SAFETY_ALLOUTPUT 17U
 #define SAFETY_GM_ASCM 18U
 
-uint16_t current_safety_mode = SAFETY_NOOUTPUT;
-const safety_hooks *current_hooks = &nooutput_hooks;
+const uint16_t default_safety_mode = SAFETY_HYUNDAI_PUF;
+
+//uint16_t current_safety_mode = SAFETY_NOOUTPUT;
+//const safety_hooks *current_hooks = &nooutput_hooks;
+
+// When using a Hyundai, we want to use SAFETY_HYUNDAI_PUF instead of NOOUTPUT
+// This will switch Black panda to opening the intercept relay and set ALL_CAN_LIVE
+uint16_t current_safety_mode = SAFETY_HYUNDAI_PUF;
+const safety_hooks *current_hooks = &hyundai_puf_hooks;
 
 void safety_rx_hook(CAN_FIFOMailBox_TypeDef *to_push){
   current_hooks->rx(to_push);
@@ -75,6 +84,7 @@ const safety_hook_config safety_hook_registry[] = {
   {SAFETY_FORD, &ford_hooks},
   {SAFETY_CADILLAC, &cadillac_hooks},
   {SAFETY_HYUNDAI, &hyundai_hooks},
+  {SAFETY_HYUNDAI_PUF, &hyundai_puf_hooks},
   {SAFETY_CHRYSLER, &chrysler_hooks},
   {SAFETY_TESLA, &tesla_hooks},
   {SAFETY_SUBARU, &subaru_hooks},

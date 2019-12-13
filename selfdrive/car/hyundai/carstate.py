@@ -234,19 +234,19 @@ class CarState():
                                          (cp.vl["LVR12"]["CF_Lvr_CruiseSet"] * speed_conv)
     self.standstill = not v_wheel > 0.1
 
-    self.angle_steers = cp.vl["SAS11"]['SAS_Angle']
-    self.angle_steers_rate = cp.vl["SAS11"]['SAS_Speed']
+    self.angle_steers = cp.vl["SAS11"]['SAS_Angle'] if not mdps_harness else cp_mdps.vl["SAS11"]['SAS_Angle']
+    self.angle_steers_rate = cp.vl["SAS11"]['SAS_Speed'] if not mdps_harness else cp_mdps.vl["SAS11"]['SAS_Speed']
     self.yaw_rate = cp.vl["ESP12"]['YAW_RATE']
     self.left_blinker_on = cp.vl["CGW1"]['CF_Gway_TSigLHSw']
     self.left_blinker_flash = cp.vl["CGW1"]['CF_Gway_TurnSigLh']
     self.right_blinker_on = cp.vl["CGW1"]['CF_Gway_TSigRHSw']
     self.right_blinker_flash = cp.vl["CGW1"]['CF_Gway_TurnSigRh']
-    self.steer_override = abs(cp.vl["MDPS11"]['CR_Mdps_DrvTq']) > STEER_THRESHOLD
-    self.steer_state = cp.vl["MDPS12"]['CF_Mdps_ToiActive'] #0 NOT ACTIVE, 1 ACTIVE
-    self.steer_error = cp.vl["MDPS12"]['CF_Mdps_ToiUnavail']
+    self.steer_override = abs(cp.vl["MDPS11"]['CR_Mdps_DrvTq']) > STEER_THRESHOLD if not mdps_harness else cp_mdps.vl["MDPS11"]['CR_Mdps_DrvTq'] > STEER_THRESHOLD
+    self.steer_state = cp.vl["MDPS12"]['CF_Mdps_ToiActive'] if not mdps_harness else cp_mdps.vl["MDPS12"]['CF_Mdps_ToiActive'] #0 NOT ACTIVE, 1 ACTIVE
+    self.steer_error = cp.vl["MDPS12"]['CF_Mdps_ToiUnavail'] if not mdps_harness else cp_mdps.vl["MDPS12"]['CF_Mdps_ToiUnavail']
     self.brake_error = 0
-    self.steer_torque_driver = cp.vl["MDPS11"]['CR_Mdps_DrvTq']
-    self.steer_torque_motor = cp.vl["MDPS12"]['CR_Mdps_OutTq']
+    self.steer_torque_driver = cp.vl["MDPS11"]['CR_Mdps_DrvTq'] if not mdps_harness else cp_mdps.vl["MDPS11"]['CR_Mdps_DrvTq']
+    self.steer_torque_motor = cp.vl["MDPS12"]['CR_Mdps_OutTq'] if not mdps_harness else cp_mdps.vl["MDPS11"]['CR_Mdps_OutTq']
     self.stopped = cp.vl["SCC11"]['SCCInfoDisplay'] == 4. if not self.no_radar else False
     self.lead_distance = cp.vl["SCC11"]['ACC_ObjDist'] if not self.no_radar else 0
 
@@ -314,3 +314,4 @@ class CarState():
     # save the entire LKAS11 and CLU11
     self.lkas11 = cp_cam.vl["LKAS11"]
     self.clu11 = cp.vl["CLU11"]
+    self.mdps12 = cp_mdps.vl["MDPS12"]

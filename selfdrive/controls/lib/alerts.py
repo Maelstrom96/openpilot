@@ -225,7 +225,7 @@ ALERTS = [
       "TAKE CONTROL",
       "Steer Unavailable Below ",
       AlertStatus.userPrompt, AlertSize.mid,
-      Priority.MID, VisualAlert.steerRequired, AudibleAlert.none, 0., 0.4, .3),
+      Priority.MID, VisualAlert.steerRequired, AudibleAlert.chimeDisengage, 0., 0.4, .3),# attempt to make it chime on steer below speed. previous was AudibleAlert.chimeWarning1
 
   Alert(
       "debugAlert",

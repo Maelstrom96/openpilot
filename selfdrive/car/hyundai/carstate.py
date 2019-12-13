@@ -194,6 +194,8 @@ class CarState():
   def update(self, cp, cp_mdps, cp_cam):
     mdps_harness = cp_mdps.vl["MDPS12"]['CF_Mdps_ToiUnavail'] != mdps_detection_value
     
+    self.mdps_harness = mdps_harness;
+    
     # update prevs, update must run once per Loop
     self.prev_left_blinker_on = self.left_blinker_on
     self.prev_right_blinker_on = self.right_blinker_on

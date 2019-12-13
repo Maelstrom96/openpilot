@@ -191,7 +191,8 @@ static int tesla_ign_hook(void) {
   return tesla_ignition_started;
 }
 
-static int tesla_fwd_hook(int bus_num, CAN_FIFOMailBox_TypeDef *to_fwd) {
+static int tesla_fwd_hook(int bus_num, CAN_FIFOMailBox_TypeDef *to_fwd, int (*fwd_bus)[]) {
+  UNUSED(fwd_bus);
 
   int bus_fwd = -1;
   int addr = GET_ADDR(to_fwd);

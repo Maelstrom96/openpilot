@@ -196,7 +196,8 @@ static void toyota_init(int16_t param) {
   toyota_dbc_eps_torque_factor = param;
 }
 
-static int toyota_fwd_hook(int bus_num, CAN_FIFOMailBox_TypeDef *to_fwd) {
+static int toyota_fwd_hook(int bus_num, CAN_FIFOMailBox_TypeDef *to_fwd, int (*fwd_bus)[]) {
+  UNUSED(fwd_bus);
 
   int bus_fwd = -1;
   if (toyota_camera_forwarded && !toyota_giraffe_switch_1) {

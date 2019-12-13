@@ -4,7 +4,13 @@ int HKG_MDPS12_cnt = 0;
 int HKG_last_StrColT = 0;
 
 void hyundai_puf_rx_hook(CAN_FIFOMailBox_TypeDef *to_push) {
+  int bus = GET_BUS(to_push);
   int addr = GET_ADDR(to_push);
+  
+  // check if we have a MDPS giraffe
+  if ((bus == 1) && ((addr == 593) || (addr == 897))) {
+    HKG_MDPS_CAN = bus;
+  }
   
   if (addr == 593) {
     if (HKG_MDPS12_checksum == -1) {
@@ -29,7 +35,7 @@ void hyundai_puf_rx_hook(CAN_FIFOMailBox_TypeDef *to_push) {
   }
 }
 
-static int hyundai_puf_fwd_hook(int bus_num, CAN_FIFOMailBox_TypeDef *to_fwd) {
+static int hyundai_puf_fwd_hook(int bus_num, CAN_FIFOMailBox_TypeDef *to_fwd, int (*fwd_bus)[]) {
   int addr = GET_ADDR(to_fwd);
   int bus_fwd = -1;
 
@@ -39,6 +45,8 @@ static int hyundai_puf_fwd_hook(int bus_num, CAN_FIFOMailBox_TypeDef *to_fwd) {
 
   if (HKG_forwarding_enabled) {
     if (bus_num == 0) {
+      // MDPS12
+      // Code for LKA/LFA/HDA anti-nagging.
       if (addr == 593) {
         uint8_t dat[8];
         int New_Chksum2 = 0;
@@ -104,11 +112,21 @@ static int hyundai_puf_fwd_hook(int bus_num, CAN_FIFOMailBox_TypeDef *to_fwd) {
         HKG_MDPS12_cnt %= 345;
       }
       bus_fwd = 2;
+      // Forward to MDPS
+      (*fwd_bus)[0] = HKG_MDPS_CAN;
     }
     if (bus_num == 2) {
       bus_fwd = 0;
+      // Forward to MDPS
+      (*fwd_bus)[0] = HKG_MDPS_CAN;
+    }
+    // Forward the message to both MFC and Vehicle
+    if (bus_num == HKG_MDPS_CAN) {
+      bus_fwd = 0;
+      (*fwd_bus)[0] = 2;
     }
   }
+  
   return bus_fwd;
 }
 

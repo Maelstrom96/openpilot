@@ -65,8 +65,8 @@ int safety_tx_lin_hook(int lin_num, uint8_t *data, int len){
 int safety_ignition_hook() {
   return current_hooks->ignition();
 }
-int safety_fwd_hook(int bus_num, CAN_FIFOMailBox_TypeDef *to_fwd) {
-  return current_hooks->fwd(bus_num, to_fwd);
+int safety_fwd_hook(int bus_num, CAN_FIFOMailBox_TypeDef *to_fwd, int (*fwd_bus)[]) {
+  return current_hooks->fwd(bus_num, to_fwd, fwd_bus);
 }
 
 typedef struct {

@@ -1,7 +1,8 @@
 // BUS 0 is on the LKAS module (ASCM) side
 // BUS 2 is on the actuator (EPS) side
 
-static int gm_ascm_fwd_hook(int bus_num, CAN_FIFOMailBox_TypeDef *to_fwd) {
+static int gm_ascm_fwd_hook(int bus_num, CAN_FIFOMailBox_TypeDef *to_fwd, int (*fwd_bus)[]) {
+  UNUSED(fwd_bus);
 
   int bus_fwd = -1;
 

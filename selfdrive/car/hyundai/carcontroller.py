@@ -19,7 +19,7 @@ class SteerLimitParams:
 
 VisualAlert = car.CarControl.HUDControl.VisualAlert
 
-def process_hud_alert(enabled, fingerprint, visual_alert, left_line,
+def process_hud_alert(enabled, lkas_button, fingerprint, visual_alert, left_line,
                        right_line, left_lane_depart, right_lane_depart):
 
   hud_alert = 0
@@ -37,6 +37,10 @@ def process_hud_alert(enabled, fingerprint, visual_alert, left_line,
     lane_visible = 5
   elif right_line:
     lane_visible = 6
+
+  # Disable LKAS icon when lkas button is off
+  if lkas_button:
+    lane_visible = 0
 
   # initialize to no warnings
   left_lane_warning = 0
@@ -84,7 +88,7 @@ class CarController():
     self.apply_steer_last = apply_steer
 
     hud_alert, lane_visible, left_lane_warning, right_lane_warning =\
-            process_hud_alert(enabled, self.car_fingerprint, visual_alert,
+            process_hud_alert(enabled, CS.lkas_button_on, self.car_fingerprint, visual_alert,
             left_line, right_line,left_lane_depart, right_lane_depart)
 
     can_sends = []

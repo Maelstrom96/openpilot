@@ -71,8 +71,8 @@ def get_can_parser(CP):
 
   checks = [
     # address, frequency
-    ("MDPS12", 50),
-    ("MDPS11", 100),
+    #("MDPS12", 50),
+    #("MDPS11", 100),
     ("TCS15", 10),
     ("TCS13", 50),
     ("CLU11", 50),
@@ -80,7 +80,7 @@ def get_can_parser(CP):
     ("CGW1", 10),
     ("CGW4", 5),
     ("WHL_SPD11", 50),
-    ("SAS11", 100)
+    #("SAS11", 100)
   ]
   if CP.carFingerprint not in FEATURES["non_scc"]:
     signals += [

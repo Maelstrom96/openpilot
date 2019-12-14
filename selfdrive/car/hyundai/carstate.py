@@ -147,7 +147,7 @@ def get_camera_parser(CP):
   signals = [
     # sig_name, sig_address, default
     # Defaults to active (1) for non_lkas models
-    ("CF_Lkas_LdwsSysState", "LKAS11", 1),
+    ("CF_Lkas_LdwsSysState", "LKAS11", 0),
     ("CF_Lkas_SysWarning", "LKAS11", 0),
     ("CF_Lkas_LdwsLHWarning", "LKAS11", 0),
     ("CF_Lkas_LdwsRHWarning", "LKAS11", 0),

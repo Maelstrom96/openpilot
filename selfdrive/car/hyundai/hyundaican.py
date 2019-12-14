@@ -27,7 +27,7 @@ def create_lkas11(packer, car_fingerprint, apply_steer, steer_req, cnt, enabled,
     "CF_Lkas_FcwCollisionWarning": lkas11["CF_Lkas_FcwCollisionWarning"] if keep_stock else 0,
     "CF_Lkas_FusionState": lkas11["CF_Lkas_FusionState"] if keep_stock else 0,
     "CF_Lkas_Chksum": 0,
-    "CF_Lkas_FcwOpt_USM": 2 if enabled else 1,
+    "CF_Lkas_FcwOpt_USM": 2 if enabled else 1 if lane_visible != 0 else 0,
     "CF_Lkas_LdwsOpt_USM": lkas11["CF_Lkas_LdwsOpt_USM"] if keep_stock else 3,
   }
 

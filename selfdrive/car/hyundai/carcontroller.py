@@ -39,8 +39,8 @@ def process_hud_alert(enabled, lkas_button, fingerprint, visual_alert, left_line
     lane_visible = 6
 
   # Disable LKAS icon when lkas button is off
-  if lkas_button:
-    lane_visible = 0
+  #if lkas_button:
+  #  lane_visible = 0
 
   # initialize to no warnings
   left_lane_warning = 0

@@ -201,7 +201,7 @@ class CarInterface(CarInterfaceBase):
     self.cp_mdps.update_strings(can_strings)
     self.cp_cam.update_strings(can_strings)
 
-    self.CS.update(self.cp, self.cp_cam)
+    self.CS.update(self.cp, self.cp_mdps, self.cp_cam)
     # create message
     ret = car.CarState.new_message()
 

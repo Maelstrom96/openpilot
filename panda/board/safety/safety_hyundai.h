@@ -96,7 +96,7 @@ static int hyundai_tx_hook(CAN_FIFOMailBox_TypeDef *to_send) {
   //  tx = 0;
   //}
 
-  Intercept CLU11 messages going to MDPS for speed spoof
+  //Intercept CLU11 messages going to MDPS for speed spoof
   if (target_bus == HKG_MDPS_CAN && addr == 1265) {
     // Get the value of CF_Clu_Vanz
     uint32_t clu11 = to_send->RDLR;

@@ -238,12 +238,12 @@ class CarInterface(CarInterfaceBase):
     ret.steeringPressed = self.CS.steer_override
 
     # cruise state
-    ret.cruiseState.enabled = self.CS.lkas_button_on
+    ret.cruiseState.enabled = self.CS.main_on != 0 and self.CS.lkas_button_on
     if self.CS.pcm_acc_status != 0:
       ret.cruiseState.speed = self.CS.cruise_set_speed
     else:
       ret.cruiseState.speed = 0
-    ret.cruiseState.available = True
+    ret.cruiseState.available = bool(self.CS.main_on)
     ret.cruiseState.standstill = False
 
     # TODO: button presses

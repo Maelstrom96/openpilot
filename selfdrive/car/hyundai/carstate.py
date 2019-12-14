@@ -146,7 +146,6 @@ def get_camera_parser(CP):
 
   signals = [
     # sig_name, sig_address, default
-    # Defaults to active (1) for non_lkas models
     ("CF_Lkas_LdwsSysState", "LKAS11", 0),
     ("CF_Lkas_SysWarning", "LKAS11", 0),
     ("CF_Lkas_LdwsLHWarning", "LKAS11", 0),
@@ -160,7 +159,8 @@ def get_camera_parser(CP):
     ("CF_Lkas_FcwSysState", "LKAS11", 0),
     ("CF_Lkas_FcwCollisionWarning", "LKAS11", 0),
     ("CF_Lkas_FusionState", "LKAS11", 0),
-    ("CF_Lkas_FcwOpt_USM", "LKAS11", 0),
+    # Defaults to active (1) for non_lkas models
+    ("CF_Lkas_FcwOpt_USM", "LKAS11", 1),
     ("CF_Lkas_LdwsOpt_USM", "LKAS11", 0)
   ]
 
@@ -313,7 +313,7 @@ class CarState():
       else:
         self.gear_shifter = GearShifter.unknown
 
-    self.lkas_button_on = 7 > cp_cam.vl["LKAS11"]["CF_Lkas_LdwsSysState"] != 0
+    self.lkas_button_on = 7 > cp_cam.vl["LKAS11"]["CF_Lkas_FcwOpt_USM"] != 0
 
     # save the entire LKAS11 and CLU11
     self.lkas11 = cp_cam.vl["LKAS11"]

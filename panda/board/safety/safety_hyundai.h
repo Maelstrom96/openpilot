@@ -92,9 +92,9 @@ static int hyundai_tx_hook(CAN_FIFOMailBox_TypeDef *to_send) {
   int addr = GET_ADDR(to_send);
 
   // There can be only one! (camera)
-  if (hyundai_camera_detected) {
-    tx = 0;
-  }
+  //if (hyundai_camera_detected) {
+  //  tx = 0;
+  //}
 
   // Intercept CLU11 messages going to MDPS for speed spoof
   // if (target_bus == HKG_MDPS_CAN && addr == 1265) {

@@ -97,30 +97,30 @@ static int hyundai_tx_hook(CAN_FIFOMailBox_TypeDef *to_send) {
   }
 
   // Intercept CLU11 messages going to MDPS for speed spoof
-  if (target_bus == HKG_MDPS_CAN && addr == 1265) {
-    // Get the value of CF_Clu_Vanz
-    uint32_t clu11 = to_send->RDLR;
-    uint32_t CF_Clu_Vanz = bitExtracted(clu11, 9, 9);
-    // Retrieve speed unit (kph (0) ot mph (1))
-    int speed_unit = bitExtracted(clu11, 1, 18);
+  // if (target_bus == HKG_MDPS_CAN && addr == 1265) {
+  //   // Get the value of CF_Clu_Vanz
+  //   uint32_t clu11 = to_send->RDLR;
+  //   uint32_t CF_Clu_Vanz = bitExtracted(clu11, 9, 9);
+  //   // Retrieve speed unit (kph (0) ot mph (1))
+  //   int speed_unit = bitExtracted(clu11, 1, 18);
 
-    // kph
-    if (speed_unit == 0) {
-      // 60 kph
-      if (CF_Clu_Vanz < 120) {
-        clu11 = (clu11 & 0xFFFE00FF) | (120 << 8);
-        to_send->RDLR = clu11;
-      }
-    }
-    // mph
-    else if (speed_unit == 1) {
-      // 32 mph
-      if (CF_Clu_Vanz < 64) {
-        clu11 = (clu11 & 0xFFFE00FF) | (64 << 8);
-        to_send->RDLR = clu11;
-      }
-    }
-  }
+  //   // kph
+  //   if (speed_unit == 0) {
+  //     // 60 kph
+  //     if (CF_Clu_Vanz < 120) {
+  //       clu11 = (clu11 & 0xFFFE00FF) | (120 << 8);
+  //       to_send->RDLR = clu11;
+  //     }
+  //   }
+  //   // mph
+  //   else if (speed_unit == 1) {
+  //     // 32 mph
+  //     if (CF_Clu_Vanz < 64) {
+  //       clu11 = (clu11 & 0xFFFE00FF) | (64 << 8);
+  //       to_send->RDLR = clu11;
+  //     }
+  //   }
+  // }
 
   // LKA STEER: safety check
   if (addr == 832) {

@@ -25,7 +25,7 @@ class CarInterface(CarInterfaceBase):
     # *** init the major players ***
     self.CS = CarState(CP)
     self.cp = get_can_parser(CP)
-    self.cp_mdps = get_camera_parser(CP)
+    self.cp_mdps = get_mdps_parser(CP)
     self.cp_cam = get_camera_parser(CP)
 
     self.CC = None

@@ -39,9 +39,6 @@ class CarInterface(CarInterfaceBase):
   @staticmethod
   def get_params(candidate, fingerprint=gen_empty_fingerprint(), vin="", has_relay=False):
 
-    # Enable PUF right away
-    ret.safetyModelPassive = car.CarParams.SafetyModel.hyundaiPuf
-
     ret = car.CarParams.new_message()
 
     ret.carName = "hyundai"
@@ -49,6 +46,8 @@ class CarInterface(CarInterfaceBase):
     ret.carVin = vin
     ret.isPandaBlack = has_relay
     ret.safetyModel = car.CarParams.SafetyModel.hyundai
+    # Enable PUF right away
+    ret.safetyModelPassive = car.CarParams.SafetyModel.hyundaiPuf
     ret.enableCruise = True  # stock acc
 
     ret.steerActuatorDelay = 0.1  # Default delay

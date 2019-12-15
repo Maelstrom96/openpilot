@@ -17,7 +17,7 @@ struct sample_t hyundai_torque_driver;         // last few driver torques measur
 int OP_LKAS_live = 0;
 bool hyundai_LKAS_forwarded = 0;
 bool hyundai_has_scc = 0;
-int HKG_MDPS_CAN = -1; // Sets the can forward can if MDPS is active (-1 for unused)
+int HKG_MDPS_CAN = 1; // Sets the can forward can if MDPS is active (-1 for unused)
 
 uint32_t bitExtracted(uint32_t number, int k, int p) 
 { 

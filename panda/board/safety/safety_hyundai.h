@@ -13,6 +13,15 @@ int hyundai_desired_torque_last = 0;
 int hyundai_cruise_engaged_last = 0;
 uint32_t hyundai_ts_last = 0;
 struct sample_t hyundai_torque_driver;         // last few driver torques measured
+int OP_LKAS_live = 0;
+bool hyundai_LKAS_forwarded = 0;
+bool hyundai_has_scc = 0;
+int HKG_MDPS_CAN = 1; // Sets the can forward can if MDPS is active (-1 for unused)
+
+uint32_t bitExtracted(uint32_t number, int k, int p) 
+{ 
+    return (((1 << k) - 1) & (number >> (p - 1))); 
+}
 
 static void hyundai_rx_hook(CAN_FIFOMailBox_TypeDef *to_push) {
   int bus = GET_BUS(to_push);
@@ -24,37 +33,92 @@ static void hyundai_rx_hook(CAN_FIFOMailBox_TypeDef *to_push) {
     update_sample(&hyundai_torque_driver, torque_driver_new);
   }
 
-  // check if stock camera ECU is on bus 0
-  if ((safety_mode_cnt > RELAY_TRNS_TIMEOUT) && (bus == 0) && (addr == 832)) {
-    relay_malfunction = true;
+  // check if we have a MDPS giraffe
+  if ((bus == 1) && ((addr == 593) || (addr == 897))) {
+    HKG_MDPS_CAN = bus;
+  }
+
+  // check if stock camera ECU is still online
+  if ((bus == 0) && (addr == 832)) {
+    hyundai_camera_detected = 1;
+    controls_allowed = 0;
+  }
+
+  // Find out which bus the camera is on
+  if (addr == 832) {
+    hyundai_camera_bus = bus;
   }
 
   // enter controls on rising edge of ACC, exit controls on ACC off
   if (addr == 1057) {
+    hyundai_has_scc = 1;
     // 2 bits: 13-14
     int cruise_engaged = (GET_BYTES_04(to_push) >> 13) & 0x3;
-    if (cruise_engaged && !hyundai_cruise_engaged_last) {
+    //if (cruise_engaged && !hyundai_cruise_engaged_last) {
       controls_allowed = 1;
-    }
+    //}
     if (!cruise_engaged) {
-      controls_allowed = 0;
+      //controls_allowed = 0;
     }
     hyundai_cruise_engaged_last = cruise_engaged;
   }
+  // cruise control for car without SCC
+  if ((addr == 871) && (!hyundai_has_scc)) {
+    // first byte
+    int cruise_engaged = (GET_BYTES_04(to_push) & 0xFF);
+    //if (cruise_engaged && !hyundai_cruise_engaged_last) {
+      controls_allowed = 1;
+    //}
+    if (!cruise_engaged) {
+      //controls_allowed = 0;
+    }
+    hyundai_cruise_engaged_last = cruise_engaged;
+  }
+
+  // 832 is lkas cmd. If it is on camera bus, then giraffe switch 2 is high
+  if ((addr == 832) && (bus == hyundai_camera_bus) && (hyundai_camera_bus != 0)) {
+    hyundai_giraffe_switch_2 = 1;
+  }
+  
+  // Bypass the whole security (TODO: Add proper logic)
+  controls_allowed = 1;
 }
 
 static int hyundai_tx_hook(CAN_FIFOMailBox_TypeDef *to_send) {
 
   int tx = 1;
+  int target_bus = GET_BUS(to_send);
   int addr = GET_ADDR(to_send);
   int bus = GET_BUS(to_send);
 
-  if (!addr_allowed(addr, bus, HYUNDAI_TX_MSGS, sizeof(HYUNDAI_TX_MSGS)/sizeof(HYUNDAI_TX_MSGS[0]))) {
-    tx = 0;
-  }
+  // if (!addr_allowed(addr, bus, HYUNDAI_TX_MSGS, sizeof(HYUNDAI_TX_MSGS)/sizeof(HYUNDAI_TX_MSGS[0]))) {
+    // tx = 0;
+  // }
 
-  if (relay_malfunction) {
-    tx = 0;
+  //Intercept CLU11 messages going to MDPS for speed spoof
+  if (target_bus == HKG_MDPS_CAN && addr == 1265) {
+    // Get the value of CF_Clu_Vanz
+    uint32_t clu11 = to_send->RDLR;
+    uint32_t CF_Clu_Vanz = bitExtracted(clu11, 9, 9);
+    // Retrieve speed unit (kph (0) ot mph (1))
+    int speed_unit = bitExtracted(clu11, 1, 18);
+
+    // kph
+    if (speed_unit == 0) {
+      // 60 kph
+      if (CF_Clu_Vanz < 120) {
+        clu11 = (clu11 & 0xFFFE00FF) | (120 << 8);
+        to_send->RDLR = clu11;
+      }
+    }
+    // mph
+    else if (speed_unit == 1) {
+      // 32 mph
+      if (CF_Clu_Vanz < 64) {
+        clu11 = (clu11 & 0xFFFE00FF) | (64 << 8);
+        to_send->RDLR = clu11;
+      }
+    }
   }
 
   // LKA STEER: safety check
@@ -63,6 +127,13 @@ static int hyundai_tx_hook(CAN_FIFOMailBox_TypeDef *to_send) {
     uint32_t ts = TIM2->CNT;
     bool violation = 0;
 
+    if (!hyundai_LKAS_forwarded) {
+      OP_LKAS_live = 20;
+    }
+    if ((hyundai_LKAS_forwarded) && (!OP_LKAS_live)) {
+      hyundai_LKAS_forwarded = 0;
+      return 1;
+    }
     if (controls_allowed) {
 
       // *** global torque limit check ***
@@ -100,7 +171,8 @@ static int hyundai_tx_hook(CAN_FIFOMailBox_TypeDef *to_send) {
     }
 
     if (violation) {
-      tx = 0;
+      // TESTING 1
+      tx = 1;
     }
   }
 
@@ -117,25 +189,76 @@ static int hyundai_tx_hook(CAN_FIFOMailBox_TypeDef *to_send) {
   return tx;
 }
 
-static int hyundai_fwd_hook(int bus_num, CAN_FIFOMailBox_TypeDef *to_fwd) {
-
+static int hyundai_fwd_hook(int bus_num, CAN_FIFOMailBox_TypeDef *to_fwd, int (*fwd_bus)[]) {
+  UNUSED(to_fwd);
+  //int addr = GET_ADDR(to_fwd);
   int bus_fwd = -1;
-  int addr = GET_ADDR(to_fwd);
+  
+  if (bus_num == 0) {
+    bus_fwd = 2;
+    // Forward to MDPS
+    (*fwd_bus)[0] = HKG_MDPS_CAN;
+  }
+  if (bus_num == 2) {
+    bus_fwd = 0;
+    // Forward to MDPS
+    (*fwd_bus)[0] = HKG_MDPS_CAN;
+  }
+  // Forward the message to both MFC and Vehicle
+  if (bus_num == HKG_MDPS_CAN) {
+    bus_fwd = 0;
+    (*fwd_bus)[0] = 2;
+  }
+  
   // forward cam to ccan and viceversa, except lkas cmd
-  if (!relay_malfunction) {
+  if (!hyundai_camera_detected) {
     if (bus_num == 0) {
-      bus_fwd = 2;
+      bus_fwd = hyundai_camera_bus;
     }
-    if ((bus_num == 2) && (addr != 832)) {
-      bus_fwd = 0;
+    if (bus_num == hyundai_camera_bus) {
+      int addr = GET_ADDR(to_fwd);
+      if (addr != 832) {
+        bus_fwd = 0;
+      }
+      else if (!OP_LKAS_live) {
+        hyundai_LKAS_forwarded = 1;
+        bus_fwd = 0;
+      }
+      else {
+        OP_LKAS_live -= 1;
+      }
     }
   }
+
+  if (HKG_MDPS_CAN != -1) {
+    int a_index = 0;
+
+    if (bus_num == HKG_MDPS_CAN) {
+      if (bus_num != 0) {
+        (*fwd_bus)[a_index++] = 0;
+      }
+      if (bus_num != 2) {
+        (*fwd_bus)[a_index++] = 2;
+      }
+    }
+    else if (addr != 832 || !OP_LKAS_live) {
+      (*fwd_bus)[a_index++] = HKG_MDPS_CAN;
+    }
+  }
+
   return bus_fwd;
 }
 
+// trying to set set_can_mode(CAN_MODE_OBD_CAN2) won't work here
+// Since this is being called to early and is getting overridden in main.c
+static void hyundai_init(int16_t param) {
+  UNUSED(param);
+  controls_allowed = 1;
+  hyundai_giraffe_switch_2 = 0;
+}
 
 const safety_hooks hyundai_hooks = {
-  .init = nooutput_init,
+  .init = hyundai_init,
   .rx = hyundai_rx_hook,
   .tx = hyundai_tx_hook,
   .tx_lin = nooutput_tx_lin_hook,

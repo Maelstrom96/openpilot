@@ -176,7 +176,8 @@ static void tesla_init(int16_t param) {
   gmlan_switch_init(1); //init the gmlan switch with 1s timeout enabled
 }
 
-static int tesla_fwd_hook(int bus_num, CAN_FIFOMailBox_TypeDef *to_fwd) {
+static int tesla_fwd_hook(int bus_num, CAN_FIFOMailBox_TypeDef *to_fwd, int (*fwd_bus)[]) {
+  UNUSED(fwd_bus);
 
   int bus_fwd = -1;
   int addr = GET_ADDR(to_fwd);

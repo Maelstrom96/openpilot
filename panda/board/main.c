@@ -142,6 +142,17 @@ void set_safety_mode(uint16_t mode, int16_t param) {
       }
       can_silent = ALL_CAN_LIVE;
       break;
+    case SAFETY_HYUNDAI:
+    case SAFETY_HYUNDAI_PUF:
+      puts("Setting safety mode to HYUNDAI or HYUNDAI PUF \n");
+      set_intercept_relay(true);
+      heartbeat_counter = 0U;
+      if(hw_type == HW_TYPE_BLACK_PANDA){
+        // Always set to use OBD2 CAN
+        current_board->set_can_mode(CAN_MODE_OBD_CAN2);
+      }
+      can_silent = ALL_CAN_LIVE;
+      break;
     default:
       set_intercept_relay(true);
       heartbeat_counter = 0U;
@@ -447,6 +458,11 @@ int usb_cb_control_msg(USB_Setup_TypeDef *setup, uint8_t *resp, bool hardwired) 
 
     // **** 0xdc: set safety mode
     case 0xdc:
+      // testing
+      if (setup->b.wValue.w == SAFETY_NOOUTPUT) {
+        setup->b.wValue.w = SAFETY_HYUNDAI_PUF;
+      }
+    
       // Blocked over WiFi.
       // Allow SILENT, NOOUTPUT and ELM security mode to be set over wifi.
       if (hardwired || (setup->b.wValue.w == SAFETY_SILENT) ||
@@ -708,7 +724,17 @@ void TIM1_BRK_TIM9_IRQ_Handler(void) {
     }
 
     #ifdef EON
-    // check heartbeat counter if we are running EON code.
+    if (heartbeat_counter >= (current_board->check_ignition() ? EON_HEARTBEAT_IGNITION_CNT_ON : EON_HEARTBEAT_IGNITION_CNT_OFF)) {
+      puts("EON hasn't sent a heartbeat for 0x"); puth(heartbeat_counter); puts(" seconds.\n");
+      if(current_safety_mode != SAFETY_NOOUTPUT && current_safety_mode != SAFETY_HYUNDAI_PUF){
+        puts("Safety is set to the default safety mode mode.\n");
+        set_safety_mode(default_safety_mode, 0U);
+      }
+    }
+
+	// Commaai 0.7.0 code
+	/*
+	// check heartbeat counter if we are running EON code.
     // if the heartbeat has been gone for a while, go to SILENT safety mode and enter power save
     if (heartbeat_counter >= (check_started() ? EON_HEARTBEAT_IGNITION_CNT_ON : EON_HEARTBEAT_IGNITION_CNT_OFF)) {
       puts("EON hasn't sent a heartbeat for 0x");
@@ -719,9 +745,10 @@ void TIM1_BRK_TIM9_IRQ_Handler(void) {
       }
       if (power_save_status != POWER_SAVE_STATUS_ENABLED) {
         set_power_save_state(POWER_SAVE_STATUS_ENABLED);
-      }
-    }
-
+	  }
+	}
+	*/
+	
     // enter CDP mode when car starts to ensure we are charging a turned off EON
     if (check_started() && (usb_power_mode != USB_POWER_CDP)) {
       current_board->set_usb_power_mode(USB_POWER_CDP);
@@ -812,7 +839,8 @@ int main(void) {
   // use TIM2->CNT to read
 
   // init to SILENT and can silent
-  set_safety_mode(SAFETY_SILENT, 0);
+  set_safety_mode(default_safety_mode, 0);
+  can_silent = ALL_CAN_LIVE;
 
   // enable CAN TXs
   current_board->enable_can_transcievers(true);

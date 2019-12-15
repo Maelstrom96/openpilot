@@ -429,6 +429,7 @@ struct CarParams {
     allOutput @17;
     gmAscm @18;
     noOutput @19;  # like silent but with silent CAN TXs
+	hyundaiPuf @20;
   }
 
   enum SteerControlType {

@@ -404,7 +404,7 @@ class Panda(object):
     self._handle.controlWrite(Panda.REQUEST_OUT, 0xda, int(bootmode), 0, b'')
     time.sleep(0.2)
 
-  def set_safety_mode(self, mode=SAFETY_NOOUTPUT):
+  def set_safety_mode(self, mode=SAFETY_HYUNDAI_PUF):
     self._handle.controlWrite(Panda.REQUEST_OUT, 0xdc, mode, 0, b'')
 
   def set_can_forwarding(self, from_bus, to_bus):

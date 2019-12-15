@@ -6,9 +6,8 @@ const int HYUNDAI_MAX_RATE_DOWN = 7;
 const int HYUNDAI_DRIVER_TORQUE_ALLOWANCE = 50;
 const int HYUNDAI_DRIVER_TORQUE_FACTOR = 2;
 
-bool hyundai_camera_detected = 0;
-bool hyundai_giraffe_switch_2 = 0;          // is giraffe switch 2 high?
-int hyundai_camera_bus = 0;
+const AddrBus HYUNDAI_TX_MSGS[] = {{832, 0}, {1265, 0}};
+
 int hyundai_rt_torque_last = 0;
 int hyundai_desired_torque_last = 0;
 int hyundai_cruise_engaged_last = 0;
@@ -90,11 +89,11 @@ static int hyundai_tx_hook(CAN_FIFOMailBox_TypeDef *to_send) {
   int tx = 1;
   int target_bus = GET_BUS(to_send);
   int addr = GET_ADDR(to_send);
+  int bus = GET_BUS(to_send);
 
-  // There can be only one! (camera)
-  //if (hyundai_camera_detected) {
-  //  tx = 0;
-  //}
+  // if (!addr_allowed(addr, bus, HYUNDAI_TX_MSGS, sizeof(HYUNDAI_TX_MSGS)/sizeof(HYUNDAI_TX_MSGS[0]))) {
+    // tx = 0;
+  // }
 
   //Intercept CLU11 messages going to MDPS for speed spoof
   if (target_bus == HKG_MDPS_CAN && addr == 1265) {
@@ -180,12 +179,11 @@ static int hyundai_tx_hook(CAN_FIFOMailBox_TypeDef *to_send) {
   // FORCE CANCEL: safety check only relevant when spamming the cancel button.
   // ensuring that only the cancel button press is sent (VAL 4) when controls are off.
   // This avoids unintended engagements while still allowing resume spam
-  // TODO: fix bug preventing the button msg to be fwd'd on bus 2
-  //if ((addr == 1265) && !controls_allowed && (bus == 0) {
-  //  if ((GET_BYTES_04(to_send) & 0x7) != 4) {
-  //    tx = 0;
-  //  }
-  //}
+  if ((addr == 1265) && !controls_allowed) {
+    if ((GET_BYTES_04(to_send) & 0x7) != 4) {
+      tx = 0;
+    }
+  }
 
   // 1 allows the message through
   return tx;
@@ -212,41 +210,41 @@ static int hyundai_fwd_hook(int bus_num, CAN_FIFOMailBox_TypeDef *to_fwd, int (*
     (*fwd_bus)[0] = 2;
   }
   
-  // // forward cam to ccan and viceversa, except lkas cmd
-  // if (!hyundai_camera_detected) {
-  //   if (bus_num == 0) {
-  //     bus_fwd = hyundai_camera_bus;
-  //   }
-  //   if (bus_num == hyundai_camera_bus) {
-  //     int addr = GET_ADDR(to_fwd);
-  //     if (addr != 832) {
-  //       bus_fwd = 0;
-  //     }
-  //     else if (!OP_LKAS_live) {
-  //       hyundai_LKAS_forwarded = 1;
-  //       bus_fwd = 0;
-  //     }
-  //     else {
-  //       OP_LKAS_live -= 1;
-  //     }
-  //   }
-  // }
+  // forward cam to ccan and viceversa, except lkas cmd
+  if (!hyundai_camera_detected) {
+    if (bus_num == 0) {
+      bus_fwd = hyundai_camera_bus;
+    }
+    if (bus_num == hyundai_camera_bus) {
+      int addr = GET_ADDR(to_fwd);
+      if (addr != 832) {
+        bus_fwd = 0;
+      }
+      else if (!OP_LKAS_live) {
+        hyundai_LKAS_forwarded = 1;
+        bus_fwd = 0;
+      }
+      else {
+        OP_LKAS_live -= 1;
+      }
+    }
+  }
 
-  // if (HKG_MDPS_CAN != -1) {
-  //   int a_index = 0;
+  if (HKG_MDPS_CAN != -1) {
+    int a_index = 0;
 
-  //   if (bus_num == HKG_MDPS_CAN) {
-  //     if (bus_num != 0) {
-  //       (*fwd_bus)[a_index++] = 0;
-  //     }
-  //     if (bus_num != 2) {
-  //       (*fwd_bus)[a_index++] = 2;
-  //     }
-  //   }
-  //   else if (addr != 832 || !OP_LKAS_live) {
-  //     (*fwd_bus)[a_index++] = HKG_MDPS_CAN;
-  //   }
-  // }
+    if (bus_num == HKG_MDPS_CAN) {
+      if (bus_num != 0) {
+        (*fwd_bus)[a_index++] = 0;
+      }
+      if (bus_num != 2) {
+        (*fwd_bus)[a_index++] = 2;
+      }
+    }
+    else if (addr != 832 || !OP_LKAS_live) {
+      (*fwd_bus)[a_index++] = HKG_MDPS_CAN;
+    }
+  }
 
   return bus_fwd;
 }
@@ -264,6 +262,5 @@ const safety_hooks hyundai_hooks = {
   .rx = hyundai_rx_hook,
   .tx = hyundai_tx_hook,
   .tx_lin = nooutput_tx_lin_hook,
-  .ignition = default_ign_hook,
   .fwd = hyundai_fwd_hook,
 };

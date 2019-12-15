@@ -17,6 +17,7 @@ int OP_LKAS_live = 0;
 int hyundai_camera_detected = 0;
 bool hyundai_LKAS_forwarded = 0;
 bool hyundai_has_scc = 0;
+int hyundai_camera_bus = -1;
 
 uint32_t bitExtracted(uint32_t number, int k, int p) 
 { 
@@ -84,7 +85,6 @@ static int hyundai_tx_hook(CAN_FIFOMailBox_TypeDef *to_send) {
   int tx = 1;
   int target_bus = GET_BUS(to_send);
   int addr = GET_ADDR(to_send);
-  int bus = GET_BUS(to_send);
 
   // This is commented out because black panda is a b*tch
   // There can be only one! (camera)

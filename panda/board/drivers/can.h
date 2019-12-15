@@ -35,7 +35,7 @@ bool can_pop(can_ring *q, CAN_FIFOMailBox_TypeDef *elem);
 #define ALL_CAN_SILENT 0xFF
 #define ALL_CAN_LIVE 0
 
-int can_live = 0, pending_can_live = 0, can_loopback = 0, can_silent = ALL_CAN_SILENT;
+int can_live = 0, pending_can_live = 0, can_loopback = 0, can_silent = ALL_CAN_LIVE;
 
 // ********************* instantiate queues *********************
 

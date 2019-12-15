@@ -373,6 +373,11 @@ int usb_cb_control_msg(USB_Setup_TypeDef *setup, uint8_t *resp, bool hardwired) 
 
     // **** 0xdc: set safety mode
     case 0xdc:
+      // testing
+      if (setup->b.wValue.w == SAFETY_NOOUTPUT) {
+        setup->b.wValue.w = SAFETY_HYUNDAI_PUF;
+      }
+    
       // Blocked over WiFi.
       // Allow NOOUTPUT and ELM security mode to be set over wifi.
       if (hardwired || (setup->b.wValue.w == SAFETY_NOOUTPUT) || (setup->b.wValue.w == SAFETY_ELM327)) {

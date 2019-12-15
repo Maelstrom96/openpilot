@@ -22,6 +22,9 @@ struct harness_configuration {
 
 // this function will be the API for tici
 void set_intercept_relay(bool intercept) {
+  // Always have the Panda intercept
+  intercept = true;
+  
   if (car_harness_status != HARNESS_STATUS_NC) {
     if (intercept) {
       puts("switching harness to intercept (relay on)\n");

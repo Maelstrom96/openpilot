@@ -421,7 +421,7 @@ struct CarParams {
     toyotaIpas @16;
     allOutput @17;
     gmAscm @18;
-    hyundaiPuf @81;
+    hyundaiPuf @19;
   }
 
   enum SteerControlType {

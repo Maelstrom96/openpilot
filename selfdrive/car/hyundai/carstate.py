@@ -5,7 +5,8 @@ from selfdrive.config import Conversions as CV
 from common.kalman.simple_kalman import KF1D
 
 GearShifter = car.CarState.GearShifter
-MDPS_CAN = 1
+
+mdps_detection_value = -9999
 
 def get_can_parser(CP):
 
@@ -55,23 +56,23 @@ def get_can_parser(CP):
 
     ("CF_Lvr_GearInf", "LVR11", 0),        #Transmission Gear (0 = N or P, 1-8 = Fwd, 14 = Rev)
 
-    ("CR_Mdps_DrvTq", "MDPS11", MDPS_CAN),
+    ("CR_Mdps_DrvTq", "MDPS11", 0),
 
-    ("CR_Mdps_StrColTq", "MDPS12", MDPS_CAN),
-    ("CF_Mdps_ToiActive", "MDPS12", MDPS_CAN),
-    ("CF_Mdps_ToiUnavail", "MDPS12", MDPS_CAN),
-    ("CF_Mdps_FailStat", "MDPS12", MDPS_CAN),
-    ("CR_Mdps_OutTq", "MDPS12", MDPS_CAN),
+    ("CR_Mdps_StrColTq", "MDPS12", 0),
+    ("CF_Mdps_ToiActive", "MDPS12", 0),
+    ("CF_Mdps_ToiUnavail", "MDPS12", 0),
+    ("CF_Mdps_FailStat", "MDPS12", 0),
+    ("CR_Mdps_OutTq", "MDPS12", 0),
 
-    ("SAS_Angle", "SAS11", MDPS_CAN),
-    ("SAS_Speed", "SAS11", MDPS_CAN),
+    ("SAS_Angle", "SAS11", 0),
+    ("SAS_Speed", "SAS11", 0),
 
   ]
 
   checks = [
     # address, frequency
-    ("MDPS12", 50),
-    ("MDPS11", 100),
+    #("MDPS12", 50),
+    #("MDPS11", 100),
     ("TCS15", 10),
     ("TCS13", 50),
     ("CLU11", 50),
@@ -79,7 +80,7 @@ def get_can_parser(CP):
     ("CGW1", 10),
     ("CGW4", 5),
     ("WHL_SPD11", 50),
-    ("SAS11", 100)
+    #("SAS11", 100)
   ]
   if CP.carFingerprint not in FEATURES["non_scc"]:
     signals += [
@@ -119,6 +120,27 @@ def get_can_parser(CP):
     ]
   return CANParser(DBC[CP.carFingerprint]['pt'], signals, checks, 0)
 
+# This is used in the case that the MDPS is on the CAN 1 using MDPS Harness
+def get_mdps_parser(CP):
+
+  signals = [
+    # sig_name, sig_address, default
+    ("CR_Mdps_DrvTq", "MDPS11", 0),
+
+    ("CR_Mdps_StrColTq", "MDPS12", 0),
+    ("CF_Mdps_ToiActive", "MDPS12", 0),
+    # Using this signal as the MDPS Harness detector.
+    ("CF_Mdps_ToiUnavail", "MDPS12", 0),
+    ("CF_Mdps_FailStat", "MDPS12", 0),
+    ("CR_Mdps_OutTq", "MDPS12", 0),
+
+    ("SAS_Angle", "SAS11", 0),
+    ("SAS_Speed", "SAS11", 0),
+  ]
+
+  checks = []
+
+  return CANParser(DBC[CP.carFingerprint]['pt'], signals, checks, 1)
 
 def get_camera_parser(CP):
 
@@ -169,7 +191,7 @@ class CarState():
     self.right_blinker_flash = 0
     self.no_radar = self.CP.carFingerprint in FEATURES["non_scc"]
 
-  def update(self, cp, cp_cam):
+  def update(self, cp, cp_mdps, cp_cam):
     # update prevs, update must run once per Loop
     self.prev_left_blinker_on = self.left_blinker_on
     self.prev_right_blinker_on = self.right_blinker_on
@@ -210,19 +232,19 @@ class CarState():
                                          (cp.vl["LVR12"]["CF_Lvr_CruiseSet"] * speed_conv)
     self.standstill = not v_wheel > 0.1
 
-    self.angle_steers = cp.vl["SAS11"]['SAS_Angle']
-    self.angle_steers_rate = cp.vl["SAS11"]['SAS_Speed']
+    self.angle_steers = cp_mdps.vl["SAS11"]['SAS_Angle']
+    self.angle_steers_rate = cp_mdps.vl["SAS11"]['SAS_Speed']
     self.yaw_rate = cp.vl["ESP12"]['YAW_RATE']
     self.left_blinker_on = cp.vl["CGW1"]['CF_Gway_TSigLHSw']
     self.left_blinker_flash = cp.vl["CGW1"]['CF_Gway_TurnSigLh']
     self.right_blinker_on = cp.vl["CGW1"]['CF_Gway_TSigRHSw']
     self.right_blinker_flash = cp.vl["CGW1"]['CF_Gway_TurnSigRh']
-    self.steer_override = abs(cp.vl["MDPS11"]['CR_Mdps_DrvTq']) > STEER_THRESHOLD
-    self.steer_state = cp.vl["MDPS12"]['CF_Mdps_ToiActive'] #0 NOT ACTIVE, 1 ACTIVE
-    self.steer_error = cp.vl["MDPS12"]['CF_Mdps_ToiUnavail']
+    self.steer_override = abs(cp_mdps.vl["MDPS11"]['CR_Mdps_DrvTq']) > STEER_THRESHOLD
+    self.steer_state = cp_mdps.vl["MDPS12"]['CF_Mdps_ToiActive'] #0 NOT ACTIVE, 1 ACTIVE
+    self.steer_error = cp_mdps.vl["MDPS12"]['CF_Mdps_ToiUnavail']
     self.brake_error = 0
-    self.steer_torque_driver = cp.vl["MDPS11"]['CR_Mdps_DrvTq']
-    self.steer_torque_motor = cp.vl["MDPS12"]['CR_Mdps_OutTq']
+    self.steer_torque_driver = cp_mdps.vl["MDPS11"]['CR_Mdps_DrvTq']
+    self.steer_torque_motor = cp_mdps.vl["MDPS12"]['CR_Mdps_OutTq']
     self.stopped = cp.vl["SCC11"]['SCCInfoDisplay'] == 4. if not self.no_radar else False
     self.lead_distance = cp.vl["SCC11"]['ACC_ObjDist'] if not self.no_radar else 0
 

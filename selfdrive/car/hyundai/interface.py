@@ -40,7 +40,7 @@ class CarInterface(CarInterfaceBase):
   def get_params(candidate, fingerprint=gen_empty_fingerprint(), vin="", has_relay=False):
 
     # Enable PUF right away
-    ret.safetyModelPassive = car.CarParams.SafetyModel.hyundai_puf
+    ret.safetyModelPassive = car.CarParams.SafetyModel.hyundaiPuf
 
     ret = car.CarParams.new_message()
 

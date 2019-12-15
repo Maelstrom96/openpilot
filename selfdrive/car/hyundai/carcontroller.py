@@ -4,7 +4,7 @@ from selfdrive.car.hyundai.hyundaican import create_lkas11, create_lkas12, \
                                              create_1191, create_1156, \
                                              create_clu11
 from selfdrive.car.hyundai.values import CAR, Buttons, MDPS_CAN
-from selfdrive.can.packer import CANPacker
+from opendbc.can.packer import CANPacker
 
 
 # Steer torque limits

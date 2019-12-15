@@ -16,6 +16,7 @@ struct sample_t hyundai_torque_driver;         // last few driver torques measur
 int OP_LKAS_live = 0;
 bool hyundai_LKAS_forwarded = 0;
 bool hyundai_has_scc = 0;
+int hyundai_camera_bus = 2;
 int HKG_MDPS_CAN = 1; // Sets the can forward can if MDPS is active (-1 for unused)
 
 uint32_t bitExtracted(uint32_t number, int k, int p) 
@@ -36,12 +37,6 @@ static void hyundai_rx_hook(CAN_FIFOMailBox_TypeDef *to_push) {
   // check if we have a MDPS giraffe
   if ((bus == 1) && ((addr == 593) || (addr == 897))) {
     HKG_MDPS_CAN = bus;
-  }
-
-  // check if stock camera ECU is still online
-  if ((bus == 0) && (addr == 832)) {
-    hyundai_camera_detected = 1;
-    controls_allowed = 0;
   }
 
   // Find out which bus the camera is on
@@ -74,22 +69,15 @@ static void hyundai_rx_hook(CAN_FIFOMailBox_TypeDef *to_push) {
     }
     hyundai_cruise_engaged_last = cruise_engaged;
   }
-
-  // 832 is lkas cmd. If it is on camera bus, then giraffe switch 2 is high
-  if ((addr == 832) && (bus == hyundai_camera_bus) && (hyundai_camera_bus != 0)) {
-    hyundai_giraffe_switch_2 = 1;
-  }
   
   // Bypass the whole security (TODO: Add proper logic)
   controls_allowed = 1;
 }
 
 static int hyundai_tx_hook(CAN_FIFOMailBox_TypeDef *to_send) {
-
   int tx = 1;
   int target_bus = GET_BUS(to_send);
   int addr = GET_ADDR(to_send);
-  int bus = GET_BUS(to_send);
 
   // if (!addr_allowed(addr, bus, HYUNDAI_TX_MSGS, sizeof(HYUNDAI_TX_MSGS)/sizeof(HYUNDAI_TX_MSGS[0]))) {
     // tx = 0;
@@ -191,42 +179,24 @@ static int hyundai_tx_hook(CAN_FIFOMailBox_TypeDef *to_send) {
 
 static int hyundai_fwd_hook(int bus_num, CAN_FIFOMailBox_TypeDef *to_fwd, int (*fwd_bus)[]) {
   UNUSED(to_fwd);
-  //int addr = GET_ADDR(to_fwd);
+  int addr = GET_ADDR(to_fwd);
   int bus_fwd = -1;
   
-  if (bus_num == 0) {
-    bus_fwd = 2;
-    // Forward to MDPS
-    (*fwd_bus)[0] = HKG_MDPS_CAN;
-  }
-  if (bus_num == 2) {
-    bus_fwd = 0;
-    // Forward to MDPS
-    (*fwd_bus)[0] = HKG_MDPS_CAN;
-  }
-  // Forward the message to both MFC and Vehicle
-  if (bus_num == HKG_MDPS_CAN) {
-    bus_fwd = 0;
-    (*fwd_bus)[0] = 2;
-  }
-  
   // forward cam to ccan and viceversa, except lkas cmd
-  if (!hyundai_camera_detected) {
-    if (bus_num == 0) {
-      bus_fwd = hyundai_camera_bus;
+  if (bus_num == 0) {
+    bus_fwd = hyundai_camera_bus;
+  }
+  if (bus_num == hyundai_camera_bus) {
+    int addr = GET_ADDR(to_fwd);
+    if (addr != 832) {
+      bus_fwd = 0;
     }
-    if (bus_num == hyundai_camera_bus) {
-      int addr = GET_ADDR(to_fwd);
-      if (addr != 832) {
-        bus_fwd = 0;
-      }
-      else if (!OP_LKAS_live) {
-        hyundai_LKAS_forwarded = 1;
-        bus_fwd = 0;
-      }
-      else {
-        OP_LKAS_live -= 1;
-      }
+    else if (!OP_LKAS_live) {
+      hyundai_LKAS_forwarded = 1;
+      bus_fwd = 0;
+    }
+    else {
+      OP_LKAS_live -= 1;
     }
   }
 
@@ -254,7 +224,6 @@ static int hyundai_fwd_hook(int bus_num, CAN_FIFOMailBox_TypeDef *to_fwd, int (*
 static void hyundai_init(int16_t param) {
   UNUSED(param);
   controls_allowed = 1;
-  hyundai_giraffe_switch_2 = 0;
 }
 
 const safety_hooks hyundai_hooks = {

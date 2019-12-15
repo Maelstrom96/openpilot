@@ -62,6 +62,7 @@ static void volkswagen_rx_hook(CAN_FIFOMailBox_TypeDef *to_push) {
 }
 
 static int volkswagen_tx_hook(CAN_FIFOMailBox_TypeDef *to_send) {
+
   int addr = GET_ADDR(to_send);
   int bus = GET_BUS(to_send);
   int tx = 1;
@@ -138,7 +139,9 @@ static int volkswagen_tx_hook(CAN_FIFOMailBox_TypeDef *to_send) {
   return tx;
 }
 
-static int volkswagen_fwd_hook(int bus_num, CAN_FIFOMailBox_TypeDef *to_fwd) {
+static int volkswagen_fwd_hook(int bus_num, CAN_FIFOMailBox_TypeDef *to_fwd, int (*fwd_bus)[]) {
+  UNUSED(fwd_bus);
+  
   int addr = GET_ADDR(to_fwd);
   int bus_fwd = -1;
 

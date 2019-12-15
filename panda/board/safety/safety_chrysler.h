@@ -112,12 +112,6 @@ static int chrysler_tx_hook(CAN_FIFOMailBox_TypeDef *to_send) {
   return tx;
 }
 
-static void chrysler_init(int16_t param) {
-  UNUSED(param);
-  controls_allowed = 0;
-  chrysler_camera_detected = 0;
-}
-
 static int chrysler_fwd_hook(int bus_num, CAN_FIFOMailBox_TypeDef *to_fwd, int (*fwd_bus)[]) {
   UNUSED(fwd_bus);
 

@@ -195,41 +195,58 @@ static int hyundai_fwd_hook(int bus_num, CAN_FIFOMailBox_TypeDef *to_fwd, int (*
 
   int addr = GET_ADDR(to_fwd);
   int bus_fwd = -1;
-  // forward cam to ccan and viceversa, except lkas cmd
-  if (!hyundai_camera_detected) {
-    if (bus_num == 0) {
-      bus_fwd = hyundai_camera_bus;
-    }
-    if (bus_num == hyundai_camera_bus) {
-      int addr = GET_ADDR(to_fwd);
-      if (addr != 832) {
-        bus_fwd = 0;
-      }
-      else if (!OP_LKAS_live) {
-        hyundai_LKAS_forwarded = 1;
-        bus_fwd = 0;
-      }
-      else {
-        OP_LKAS_live -= 1;
-      }
-    }
+  
+  if (bus_num == 0) {
+    bus_fwd = 2;
+    // Forward to MDPS
+    (*fwd_bus)[0] = HKG_MDPS_CAN;
   }
-
-  if (HKG_MDPS_CAN != -1) {
-    int a_index = 0;
-
-    if (bus_num == HKG_MDPS_CAN) {
-      if (bus_num != 0) {
-        (*fwd_bus)[a_index++] = 0;
-      }
-      if (bus_num != 2) {
-        (*fwd_bus)[a_index++] = 2;
-      }
-    }
-    else if (addr != 832 || !OP_LKAS_live) {
-      (*fwd_bus)[a_index++] = HKG_MDPS_CAN;
-    }
+  if (bus_num == 2) {
+    bus_fwd = 0;
+    // Forward to MDPS
+    (*fwd_bus)[0] = HKG_MDPS_CAN;
   }
+  // Forward the message to both MFC and Vehicle
+  if (bus_num == HKG_MDPS_CAN) {
+    bus_fwd = 0;
+    (*fwd_bus)[0] = 2;
+  }
+  
+  // // forward cam to ccan and viceversa, except lkas cmd
+  // if (!hyundai_camera_detected) {
+  //   if (bus_num == 0) {
+  //     bus_fwd = hyundai_camera_bus;
+  //   }
+  //   if (bus_num == hyundai_camera_bus) {
+  //     int addr = GET_ADDR(to_fwd);
+  //     if (addr != 832) {
+  //       bus_fwd = 0;
+  //     }
+  //     else if (!OP_LKAS_live) {
+  //       hyundai_LKAS_forwarded = 1;
+  //       bus_fwd = 0;
+  //     }
+  //     else {
+  //       OP_LKAS_live -= 1;
+  //     }
+  //   }
+  // }
+
+  // if (HKG_MDPS_CAN != -1) {
+  //   int a_index = 0;
+
+  //   if (bus_num == HKG_MDPS_CAN) {
+  //     if (bus_num != 0) {
+  //       (*fwd_bus)[a_index++] = 0;
+  //     }
+  //     if (bus_num != 2) {
+  //       (*fwd_bus)[a_index++] = 2;
+  //     }
+  //   }
+  //   else if (addr != 832 || !OP_LKAS_live) {
+  //     (*fwd_bus)[a_index++] = HKG_MDPS_CAN;
+  //   }
+  // }
 
   return bus_fwd;
 }
@@ -248,5 +265,5 @@ const safety_hooks hyundai_hooks = {
   .tx = hyundai_tx_hook,
   .tx_lin = nooutput_tx_lin_hook,
   .ignition = default_ign_hook,
-  .fwd = hyundai_fwd_hook,
+  .fwd = hyundai_puf_fwd_hook,
 };

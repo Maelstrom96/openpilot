@@ -233,6 +233,33 @@ ALERTS = [
       "",
       AlertStatus.userPrompt, AlertSize.mid,
       Priority.LOW, VisualAlert.none, AudibleAlert.none, .1, .1, .1),
+  Alert(
+      "preLaneChangeLeft",
+      "Steer Left to Start Lane Change",
+      "Monitor Other Vehicles",
+      AlertStatus.normal, AlertSize.mid,
+      Priority.LOW, VisualAlert.steerRequired, AudibleAlert.none, .0, .1, .1, alert_rate=0.75),
+
+  Alert(
+      "preLaneChangeRight",
+      "Steer Right to Start Lane Change",
+      "Monitor Other Vehicles",
+      AlertStatus.normal, AlertSize.mid,
+      Priority.LOW, VisualAlert.steerRequired, AudibleAlert.none, .0, .1, .1, alert_rate=0.75),
+
+  Alert(
+      "laneChange",
+      "Changing Lane",
+      "Monitor Other Vehicles",
+      AlertStatus.normal, AlertSize.mid,
+      Priority.LOW, VisualAlert.steerRequired, AudibleAlert.none, .0, .1, .1),
+
+  Alert(
+      "posenetInvalid",
+      "TAKE CONTROL",
+      "Vision Model Output Uncertain",
+      AlertStatus.userPrompt, AlertSize.mid,
+      Priority.LOW, VisualAlert.steerRequired, AudibleAlert.chimeWarning1, .4, 2., 3.),
 
   # Non-entry only alerts
   Alert(
@@ -397,10 +424,11 @@ ALERTS = [
       AlertStatus.critical, AlertSize.full,
       Priority.MID, VisualAlert.steerRequired, AudibleAlert.chimeWarningRepeat, .1, 2., 2.),
 
+
   Alert(
-      "posenetInvalid",
+      "lowMemory",
       "TAKE CONTROL IMMEDIATELY",
-      "Vision Failure: Check Camera View",
+      "Low Memory: Reboot Your EON",
       AlertStatus.critical, AlertSize.full,
       Priority.MID, VisualAlert.steerRequired, AudibleAlert.chimeWarningRepeat, .1, 2., 2.),
 
@@ -483,13 +511,6 @@ ALERTS = [
       AlertStatus.normal, AlertSize.mid,
       Priority.HIGH, VisualAlert.none, AudibleAlert.chimeDisengage, .4, 2., 3.),
 
-  Alert(
-      "invalidGiraffeHonda",
-      "Invalid Giraffe Configuration",
-      "Set 0111 for openpilot. 1011 for stock",
-      AlertStatus.normal, AlertSize.mid,
-      Priority.HIGH, VisualAlert.none, AudibleAlert.chimeDisengage, .4, 2., 3.),
-
   # Cancellation alerts causing non-entry
   Alert(
       "overheatNoEntry",
@@ -564,7 +585,7 @@ ALERTS = [
   Alert(
       "posenetInvalidNoEntry",
       "openpilot Unavailable",
-      "Vision Failure: Check Camera View",
+      "Vision Model Output Uncertain",
       AlertStatus.normal, AlertSize.mid,
       Priority.LOW, VisualAlert.none, AudibleAlert.chimeError, .4, 2., 3.),
 
@@ -632,20 +653,6 @@ ALERTS = [
       Priority.LOW, VisualAlert.none, AudibleAlert.chimeError, .4, 2., 3.),
 
   Alert(
-      "invalidGiraffeHondaNoEntry",
-      "openpilot Unavailable",
-      "Set 0111 for openpilot. 1011 for stock",
-      AlertStatus.normal, AlertSize.mid,
-      Priority.LOW, VisualAlert.none, AudibleAlert.chimeDisengage, .4, 2., 3.),
-
-  Alert(
-      "invalidGiraffeToyotaNoEntry",
-      "openpilot Unavailable",
-      "Visit comma.ai/tg",
-      AlertStatus.normal, AlertSize.mid,
-      Priority.LOW, VisualAlert.none, AudibleAlert.chimeDisengage, .4, 2., 3.),
-
-  Alert(
       "commIssueNoEntry",
       "openpilot Unavailable",
       "Communication Issue between Processes",
@@ -655,7 +662,14 @@ ALERTS = [
   Alert(
       "internetConnectivityNeededNoEntry",
       "openpilot Unavailable",
-      "Internet Connectivity Needed",
+      "Please Connect to Internet",
+      AlertStatus.normal, AlertSize.mid,
+      Priority.LOW, VisualAlert.none, AudibleAlert.chimeDisengage, .4, 2., 3.),
+
+  Alert(
+      "lowMemoryNoEntry",
+      "openpilot Unavailable",
+      "Low Memory: Reboot Your EON",
       AlertStatus.normal, AlertSize.mid,
       Priority.LOW, VisualAlert.none, AudibleAlert.chimeDisengage, .4, 2., 3.),
 
@@ -689,13 +703,6 @@ ALERTS = [
       Priority.LOWEST, VisualAlert.none, AudibleAlert.none, 0., 0., .2),
 
   Alert(
-      "invalidGiraffeHondaPermanent",
-      "Invalid Giraffe Configuration",
-      "Set 0111 for openpilot. 1011 for stock",
-      AlertStatus.normal, AlertSize.mid,
-      Priority.LOW_LOWEST, VisualAlert.none, AudibleAlert.none, 0., 0., .2),
-
-  Alert(
       "invalidGiraffeToyotaPermanent",
       "Unsupported Giraffe Configuration",
       "Visit comma.ai/tg",
@@ -704,10 +711,17 @@ ALERTS = [
 
   Alert(
       "internetConnectivityNeededPermanent",
-      "Internet Connectivity Needed",
-      "Check for Updates to Be Able to Engage",
+      "Please connect to Internet",
+      "An Update Check Is Required to Engage",
       AlertStatus.normal, AlertSize.mid,
       Priority.LOW_LOWEST, VisualAlert.none, AudibleAlert.none, 0., 0., .2),
+
+  Alert(
+      "communityFeatureDisallowedPermanent",
+      "Community Feature Detected",
+      "Enable Community Features in Developer Settings",
+      AlertStatus.normal, AlertSize.mid,
+      Priority.LOW, VisualAlert.none, AudibleAlert.none, 0., 0., .2),  # LOW priority to overcome Cruise Error
 
   Alert(
       "sensorDataInvalidPermanent",
@@ -724,9 +738,24 @@ ALERTS = [
       Priority.LOW_LOWEST, VisualAlert.none, AudibleAlert.none, 0., 0., .2),
 
   Alert(
+      "lowMemoryPermanent",
+      "RAM Memory Critically Low",
+      "Reboot your EON",
+      AlertStatus.normal, AlertSize.mid,
+      Priority.LOW_LOWEST, VisualAlert.none, AudibleAlert.none, 0., 0., .2),
+
+  Alert(
       "vehicleModelInvalid",
       "Vehicle Parameter Identification Failed",
       "",
       AlertStatus.normal, AlertSize.small,
       Priority.LOWEST, VisualAlert.steerRequired, AudibleAlert.none, .0, .0, .1),
+
+  # offroad alerts
+  Alert(
+      "ldwPermanent",
+      "TAKE CONTROL",
+      "Lane Departure Detected",
+      AlertStatus.userPrompt, AlertSize.mid,
+      Priority.LOW, VisualAlert.steerRequired, AudibleAlert.chimePrompt, 1., 2., 3.),
 ]

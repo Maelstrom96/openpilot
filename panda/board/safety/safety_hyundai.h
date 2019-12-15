@@ -193,7 +193,7 @@ static int hyundai_tx_hook(CAN_FIFOMailBox_TypeDef *to_send) {
 
 static int hyundai_fwd_hook(int bus_num, CAN_FIFOMailBox_TypeDef *to_fwd, int (*fwd_bus)[]) {
 
-  int addr = GET_ADDR(to_fwd);
+  //int addr = GET_ADDR(to_fwd);
   int bus_fwd = -1;
   
   if (bus_num == 0) {
@@ -265,5 +265,5 @@ const safety_hooks hyundai_hooks = {
   .tx = hyundai_tx_hook,
   .tx_lin = nooutput_tx_lin_hook,
   .ignition = default_ign_hook,
-  .fwd = hyundai_puf_fwd_hook,
+  .fwd = hyundai_fwd_hook,
 };

@@ -121,7 +121,10 @@ static int mazda_tx_hook(CAN_FIFOMailBox_TypeDef *to_send) {
   return tx;
 }
 
-static int mazda_fwd_hook(int bus, CAN_FIFOMailBox_TypeDef *to_fwd) {
+static int mazda_fwd_hook(int bus, CAN_FIFOMailBox_TypeDef *to_fwd, int (*fwd_bus)[]) {
+  // Needed to bypass unused-parameter error
+  (*fwd_bus)[0] = -1;  
+  
   int bus_fwd = -1;
   if (!relay_malfunction) {
     int addr = GET_ADDR(to_fwd);

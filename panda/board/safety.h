@@ -52,8 +52,8 @@ int safety_tx_lin_hook(int lin_num, uint8_t *data, int len){
   return current_hooks->tx_lin(lin_num, data, len);
 }
 
-int safety_fwd_hook(int bus_num, CAN_FIFOMailBox_TypeDef *to_fwd) {
-  return current_hooks->fwd(bus_num, to_fwd);
+int safety_fwd_hook(int bus_num, CAN_FIFOMailBox_TypeDef *to_fwd, int (*fwd_bus)[]) {
+  return current_hooks->fwd(bus_num, to_fwd, fwd_bus);
 }
 
 bool addr_allowed(int addr, int bus, const AddrBus addr_list[], int len) {

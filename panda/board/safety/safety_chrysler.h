@@ -112,7 +112,8 @@ static int chrysler_tx_hook(CAN_FIFOMailBox_TypeDef *to_send) {
   return tx;
 }
 
-static int chrysler_fwd_hook(int bus_num, CAN_FIFOMailBox_TypeDef *to_fwd) {
+static int chrysler_fwd_hook(int bus_num, CAN_FIFOMailBox_TypeDef *to_fwd, int (*fwd_bus)[]) {
+  UNUSED(fwd_bus);
 
   int bus_fwd = -1;
   int addr = GET_ADDR(to_fwd);

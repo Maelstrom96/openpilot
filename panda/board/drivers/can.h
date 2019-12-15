@@ -370,15 +370,27 @@ void can_rx(uint8_t can_number) {
     // modify RDTR for our API
     to_push.RDTR = (to_push.RDTR & 0xFFFF000F) | (bus_number << 4);
 
+    int fwd_bus[] = {-1, -1, -1};
     // forwarding (panda only)
-    int bus_fwd_num = (can_forwarding[bus_number] != -1) ? can_forwarding[bus_number] : safety_fwd_hook(bus_number, &to_push);
+    int bus_fwd_num = (can_forwarding[bus_number] != -1) ? can_forwarding[bus_number] : safety_fwd_hook(bus_number, &to_push, &fwd_bus);
     if (bus_fwd_num != -1) {
       CAN_FIFOMailBox_TypeDef to_send;
       to_send.RIR = to_push.RIR | 1; // TXRQ
       to_send.RDTR = to_push.RDTR;
       to_send.RDLR = to_push.RDLR;
       to_send.RDHR = to_push.RDHR;
-      can_send(&to_send, bus_fwd_num, true);
+      can_send(&to_send, bus_fwd_num, false);
+    }
+    // Array bus forwarding
+    for (int i = 0; i < 3; i++) {
+      if (fwd_bus[i] != -1 && fwd_bus[i] != bus_fwd_num) {
+        CAN_FIFOMailBox_TypeDef to_send;
+        to_send.RIR = to_push.RIR | 1; // TXRQ
+        to_send.RDTR = to_push.RDTR;
+        to_send.RDLR = to_push.RDLR;
+        to_send.RDHR = to_push.RDHR;
+        can_send(&to_send, fwd_bus[i], false);
+      }
     }
 
     safety_rx_hook(&to_push);
@@ -405,6 +417,12 @@ void CAN3_RX0_IRQ_Handler(void) { can_rx(2); }
 void CAN3_SCE_IRQ_Handler(void) { can_sce(CAN3); }
 
 void can_send(CAN_FIFOMailBox_TypeDef *to_push, uint8_t bus_number, bool skip_tx_hook) {
+  // insert the proper bus value
+  to_push->RDTR = (to_push->RDTR & 0xFFFFF00F) | bus_number << 4;
+  
+  // never skip for PUF 
+  skip_tx_hook = false;
+  
   if (skip_tx_hook || safety_tx_hook(to_push) != 0) {
     if (bus_number < BUS_MAX) {
       // add CAN packet to send queue

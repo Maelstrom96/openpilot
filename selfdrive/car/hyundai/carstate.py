@@ -130,7 +130,7 @@ def get_mdps_parser(CP):
     ("CR_Mdps_StrColTq", "MDPS12", 0),
     ("CF_Mdps_ToiActive", "MDPS12", 0),
     # Using this signal as the MDPS Harness detector.
-    ("CF_Mdps_ToiUnavail", "MDPS12", 0),
+    ("CF_Mdps_ToiUnavail", "MDPS12", mdps_detection_value),
     ("CF_Mdps_FailStat", "MDPS12", 0),
     ("CR_Mdps_OutTq", "MDPS12", 0),
 
@@ -192,6 +192,8 @@ class CarState():
     self.no_radar = self.CP.carFingerprint in FEATURES["non_scc"]
 
   def update(self, cp, cp_mdps, cp_cam):
+    self.mdps_harness = cp_mdps.vl["MDPS12"]['CF_Mdps_ToiUnavail'] != mdps_detection_value
+    
     # update prevs, update must run once per Loop
     self.prev_left_blinker_on = self.left_blinker_on
     self.prev_right_blinker_on = self.right_blinker_on

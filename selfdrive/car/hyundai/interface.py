@@ -326,7 +326,7 @@ class CarInterface(CarInterfaceBase):
     # Suggsted to remove `and self.CP.carFingerprint == CAR.GENESIS` by @dnv26 per comment
     # "you don’t want OP to keep sending lkas message below minsteerspeed, that’s why mdps faulted"
     # Updated to `or self.CP.minSteerSpeed > 0` to ensure vehicle has a minsteerspeed set.
-    enable = 0 if self.CS.v_ego < self.CP.minSteerSpeed and self.CP.minSteerSpeed > 0 else c.enabled
+    enable = 0 if self.CS.v_ego < self.CP.minSteerSpeed and self.CP.minSteerSpeed > 0 and !self.CS.mdps_harness else c.enabled
     # enable = 0 if self.CS.v_ego < self.CP.minSteerSpeed and self.CP.carFingerprint == CAR.GENESIS else c.enabled
     
     can_sends = self.CC.update(enable, self.CS, self.frame, c.actuators,
